@@ -1,1 +1,6 @@
-[]
+[
+    {
+        "image_path": "/home/yuyangxin/data/dataset/MSCOCO/train2017/000000000009.jpg",
+        "error_info": "JSON file already exists: test/000000000009.json"
+    }
+]

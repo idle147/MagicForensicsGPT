@@ -16,6 +16,10 @@ ann_file = data_dir / "annotations" / f"instances_{data_type}.json"
 caption_file = data_dir / "annotations" / f"captions_{data_type}.json"
 
 save_path = Path("/home/yuyangxin/data/experiment/examples")
+# 如果文件夹存在，则删除
+if save_path.exists() and save_path.is_dir():
+    shutil.rmtree(save_path)
+
 target_mask_dir = save_path / "mask"
 target_img_dir = save_path / "images"
 save_path.mkdir(parents=True, exist_ok=True)
@@ -31,7 +35,7 @@ img_ids = sorted(coco.getImgIds())
 output_dict = {}
 count = 0
 
-max_value, min_value = 128, 32
+max_value, min_value = 256, 64
 
 for img_id in img_ids:
     if count >= 100:
@@ -39,6 +43,8 @@ for img_id in img_ids:
 
     ann_ids = coco.getAnnIds(imgIds=img_id)
     anns = coco.loadAnns(ann_ids)
+    # 打乱顺序
+    np.random.shuffle(anns)
 
     # Load the image
     img = coco.loadImgs(img_id)[0]

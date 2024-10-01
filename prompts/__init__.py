@@ -1,2 +1,3 @@
-from .description_prompt import PromptDescription
-from .modify_prompt import PromptModifier
+from .full_desc import FullDescription
+from .modify_desc import ModifyDesc
+from .target_desc import TargetDesc
