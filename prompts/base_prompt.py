@@ -24,5 +24,5 @@ class BasePrompt(ABC):
         pass
 
     @abstractmethod
-    def run(self, image_info, captions):
+    def run(self, image_info, captions, *args, **kwargs):
         pass

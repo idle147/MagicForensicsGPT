@@ -12,9 +12,6 @@ class ImageProcessor:
     def __init__(self, target_size=(256, 256)):
         """
         初始化ImageProcessor类。
-
-        参数:
-        target_size (tuple): 目标尺寸，默认为(128, 128)。
         """
         self.target_size = target_size
         self.transform = T.Compose(
@@ -37,31 +34,52 @@ class ImageProcessor:
         return img
 
     @staticmethod
-    def get_original_coordinates(scaled_x, scaled_y, original_size, scaled_size):
+    def get_original_coordinates(position, original_size, scaled_size):
         """
         获取缩放前的坐标点。
 
         参数:
-        scaled_x (float): 缩放后的x坐标。
-        scaled_y (float): 缩放后的y坐标。
+        position (list): 缩放后的坐标点列表，长度应为偶数。
         original_size (tuple): 原始图片尺寸 (宽, 高)。
         scaled_size (tuple): 缩放后图片尺寸 (宽, 高)。
 
         返回:
-        tuple: 缩放前的坐标点 (x, y)。
+        list: 缩放前的坐标点列表。
         """
+        if len(position) % 2 != 0:
+            raise ValueError("Position must have an even number of elements")
+
         original_width, original_height = original_size
         scaled_width, scaled_height = scaled_size
 
-        # 计算缩放因子
         width_ratio = scaled_width / original_width
         height_ratio = scaled_height / original_height
 
-        # 反向计算原始坐标点
-        original_x = scaled_x / width_ratio
-        original_y = scaled_y / height_ratio
+        return [coord / ratio for coord, ratio in zip(position, [width_ratio, height_ratio] * (len(position) // 2))]
 
-        return original_x, original_y
+    @staticmethod
+    def get_scaled_coordinates(position, original_size, scaled_size):
+        """
+        获取缩放后的坐标点。
+
+        参数:
+        position (list): 原始坐标点列表，长度应为偶数。
+        original_size (tuple): 原始图片尺寸 (宽, 高)。
+        scaled_size (tuple): 缩放后图片尺寸 (宽, 高)。
+
+        返回:
+        list: 缩放后的坐标点列表。
+        """
+        if len(position) % 2 != 0:
+            raise ValueError("Position must have an even number of elements")
+
+        original_width, original_height = original_size
+        scaled_width, scaled_height = scaled_size
+
+        width_ratio = scaled_width / original_width
+        height_ratio = scaled_height / original_height
+
+        return [coord * ratio for coord, ratio in zip(position, [width_ratio, height_ratio] * (len(position) // 2))]
 
     @staticmethod
     def resize_back_to_original(scaled_img, original_size):
