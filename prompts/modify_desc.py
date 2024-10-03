@@ -23,8 +23,8 @@ class ModifyDesc(BasePrompt):
             ("system", self.system_msg),
             ("system", "{format_instructions}"),
             ("placeholder", "{image_data}"),
-            ("human", f"Modify types: {modify_type.value}"),
             ("human", "Modify target object info: {target_info}"),
+            ("human", f"Modify types: {modify_type.value}"),
         ]
         partial_vars = {"format_instructions": output_parser.get_format_instructions() if output_parser is not None else None}
         chat_template = ChatPromptTemplate(placeholders, partial_variables=partial_vars)

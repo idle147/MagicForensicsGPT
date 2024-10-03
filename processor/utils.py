@@ -1,6 +1,56 @@
 from PIL import Image, ImageDraw
 
 
+def get_scaled_coordinates(position, scale_factor):
+    """
+    获取缩放后的坐标点。
+
+    参数:
+    position (list): 原始坐标点列表，长度应为偶数。
+    original_size (tuple): 原始图片尺寸 (宽, 高)。
+    scaled_size (tuple): 缩放后图片尺寸 (宽, 高)。
+
+    返回:
+    list: 缩放后的坐标点列表。
+    """
+    if len(position) % 2 != 0:
+        raise ValueError("Position must have an even number of elements")
+
+    return [coord * ratio for coord, ratio in zip(position, [scale_factor, scale_factor] * (len(position) // 2))]
+
+
+def get_original_coordinates(position, scale_factor):
+    """
+    获取缩放前的坐标点。
+
+    参数:
+    position (list): 缩放后的坐标点列表，长度应为偶数。
+    original_size (tuple): 原始图片尺寸 (宽, 高)。
+    scaled_size (tuple): 缩放后图片尺寸 (宽, 高)。
+
+    返回:
+    list: 缩放前的坐标点列表。
+    """
+    if len(position) % 2 != 0:
+        raise ValueError("Position must have an even number of elements")
+
+    return [coord / ratio for coord, ratio in zip(position, [scale_factor, scale_factor] * (len(position) // 2))]
+
+
+def resize_back_to_original(scaled_img, original_size):
+    """
+    将缩放后的图片缩放回原来的大小。
+
+    参数:
+    scaled_img (PIL.Image): 缩放后的图片。
+    original_size (tuple): 原始图片尺寸 (宽, 高)。
+
+    返回:
+    PIL.Image: 缩放回原来大小的图片。
+    """
+    return scaled_img.resize(original_size, Image.BICUBIC)
+
+
 def calculate_bbox_center(bbox):
     """
     根据COCO的bbox计算分割区域的中心点。

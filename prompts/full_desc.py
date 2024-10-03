@@ -14,13 +14,14 @@ class FullDescription(BasePrompt):
             ("system", self.system_msg),
             ("system", "{format_instructions}"),
             ("placeholder", "{image_data}"),
-            ("ai", "full image captions(Split using the symbol <seg>): {captions}"),
+            ("human", "Segmentation point information of the masked object: {segmentation}"),
+            ("human", "Full image captions(Split using the symbol <seg>): {captions}"),
         ]
         partial_vars = {"format_instructions": output_parser.get_format_instructions() if output_parser is not None else None}
         chat_template = ChatPromptTemplate(placeholders, partial_variables=partial_vars)
         return chat_template
 
-    def run(self, image_info, captions) -> DescriptionModel:
-        input_info = {"image_data": [image_info], "captions": " <seg> ".join(captions)}
+    def run(self, image_info, segmentation, captions) -> DescriptionModel:
+        input_info = {"image_data": [image_info], "segmentation": segmentation, "captions": " <seg> ".join(captions)}
         response: DescriptionModel = self.chain.invoke(input_info)
         return response

@@ -9,91 +9,32 @@ from torchvision import transforms as T
 
 
 class ImageProcessor:
-    def __init__(self, target_size=(256, 256)):
+    def __init__(self, max_width=256, max_height=256):
         """
         初始化ImageProcessor类。
         """
-        self.target_size = target_size
-        self.transform = T.Compose(
-            [
-                T.Lambda(lambda img: self._resize_with_aspect_ratio(img.copy())),
-            ]
-        )
+        self.max_width = max_width
+        self.max_height = max_height
 
-    def _resize_with_aspect_ratio(self, img: Image.Image):
-        """
-        根据目标尺寸等比缩放图片，不改变长宽比。
+    def resize_image(self, image):
+        # 获取原始图像的宽度和高度
+        original_width, original_height = image.size
 
-        参数:
-        img (PIL.Image): 输入图片。
+        # 计算宽度和高度的缩放比例
+        width_ratio = self.max_width / original_width
+        height_ratio = self.max_height / original_height
 
-        返回:
-        PIL.Image: 缩放后的图片。
-        """
-        img.thumbnail(self.target_size)
-        return img
+        # 使用较小的比例进行缩放，保证宽度和高度都不超过最大值
+        scale_ratio = min(width_ratio, height_ratio)
 
-    @staticmethod
-    def get_original_coordinates(position, original_size, scaled_size):
-        """
-        获取缩放前的坐标点。
+        # 计算新的宽度和高度
+        new_width = int(original_width * scale_ratio)
+        new_height = int(original_height * scale_ratio)
 
-        参数:
-        position (list): 缩放后的坐标点列表，长度应为偶数。
-        original_size (tuple): 原始图片尺寸 (宽, 高)。
-        scaled_size (tuple): 缩放后图片尺寸 (宽, 高)。
+        # 使用LANCZOS进行高质量缩放
+        resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-        返回:
-        list: 缩放前的坐标点列表。
-        """
-        if len(position) % 2 != 0:
-            raise ValueError("Position must have an even number of elements")
-
-        original_width, original_height = original_size
-        scaled_width, scaled_height = scaled_size
-
-        width_ratio = scaled_width / original_width
-        height_ratio = scaled_height / original_height
-
-        return [coord / ratio for coord, ratio in zip(position, [width_ratio, height_ratio] * (len(position) // 2))]
-
-    @staticmethod
-    def get_scaled_coordinates(position, original_size, scaled_size):
-        """
-        获取缩放后的坐标点。
-
-        参数:
-        position (list): 原始坐标点列表，长度应为偶数。
-        original_size (tuple): 原始图片尺寸 (宽, 高)。
-        scaled_size (tuple): 缩放后图片尺寸 (宽, 高)。
-
-        返回:
-        list: 缩放后的坐标点列表。
-        """
-        if len(position) % 2 != 0:
-            raise ValueError("Position must have an even number of elements")
-
-        original_width, original_height = original_size
-        scaled_width, scaled_height = scaled_size
-
-        width_ratio = scaled_width / original_width
-        height_ratio = scaled_height / original_height
-
-        return [coord * ratio for coord, ratio in zip(position, [width_ratio, height_ratio] * (len(position) // 2))]
-
-    @staticmethod
-    def resize_back_to_original(scaled_img, original_size):
-        """
-        将缩放后的图片缩放回原来的大小。
-
-        参数:
-        scaled_img (PIL.Image): 缩放后的图片。
-        original_size (tuple): 原始图片尺寸 (宽, 高)。
-
-        返回:
-        PIL.Image: 缩放回原来大小的图片。
-        """
-        return scaled_img.resize(original_size, Image.BICUBIC)
+        return resized_image, scale_ratio
 
     @staticmethod
     def is_url(path: str):
@@ -121,8 +62,8 @@ class ImageProcessor:
             src_image = Image.open(requests.get(image_file, stream=True).raw).convert(image_type)
         else:
             src_image = Image.open(image_file).convert(image_type)
-        trans_image = self.transform(src_image)
-        return src_image, trans_image
+        trans_image, scale_ratio = self.resize_image(src_image)
+        return src_image, trans_image, scale_ratio
 
     @staticmethod
     def combine_images(src_img, mask_img):
