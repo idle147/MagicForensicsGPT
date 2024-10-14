@@ -35,12 +35,11 @@ img_ids = sorted(coco.getImgIds())
 output_dict = {}
 count = 0
 
-max_value, min_value = 256, 64
+max_value, min_value = 64, 32
 
 for img_id in img_ids:
-    if count >= 100:
+    if count > 500:
         break
-
     ann_ids = coco.getAnnIds(imgIds=img_id)
     anns = coco.loadAnns(ann_ids)
     # 打乱顺序

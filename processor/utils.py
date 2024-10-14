@@ -149,44 +149,46 @@ def draw_rectangle_from_diagonal(image, points, line_color=(255, 0, 0), line_wid
     return image
 
 
-def mask_change(mask, start_point, end_point, type="moving"):
-    # 获取起始点和终点的坐标
+def mask_change(mask, start_point, end_point, type="moving") -> Image:
+    # Unpack start and end points
     start_x, start_y = start_point
     end_x, end_y = end_point
 
-    # 获取mask的尺寸
+    # Get mask dimensions
     width, height = mask.size
 
-    # 找到所有值为255的像素位置
+    # Load mask data
     mask_data = mask.load()
-    region = []
-    for y in range(height):
-        for x in range(width):
-            if mask_data[x, y] == 255:
-                region.append((x, y))
 
-    # 计算偏移量
+    # Find all pixels with value 255
+    region = [(x, y) for y in range(height) for x in range(width) if mask_data[x, y] == 255]
+
+    # Calculate offset
     offset_x = end_x - start_x
     offset_y = end_y - start_y
 
-    # 检查目标区域是否超出编辑范围
-    for x, y in region:
-        new_x = x + offset_x
-        new_y = y + offset_y
-        if not (0 <= new_x < width and 0 <= new_y < height):
-            raise ValueError("目标区域超出编辑范围")
+    # Determine the bounding box of the region
+    if region:
+        min_x = min(x for x, y in region)
+        max_x = max(x for x, y in region)
+        min_y = min(y for x, y in region)
+        max_y = max(y for x, y in region)
 
-    if type == "moving":
-        # 将区域从原图中移除
+        # Adjust offset to ensure the region stays within bounds
+        offset_x = max(-min_x, min(offset_x, width - 1 - max_x))
+        offset_y = max(-min_y, min(offset_y, height - 1 - max_y))
+
+        if type == "moving":
+            # Remove the region from the original position
+            for x, y in region:
+                mask_data[x, y] = 0
+
+        # Move the region to the new position
         for x, y in region:
-            mask_data[x, y] = 0
-
-    # 将区域移动到新的位置
-    for x, y in region:
-        new_x = x + offset_x
-        new_y = y + offset_y
-        if 0 <= new_x < width and 0 <= new_y < height:
-            mask_data[new_x, new_y] = 255
+            new_x = x + offset_x
+            new_y = y + offset_y
+            if 0 <= new_x < width and 0 <= new_y < height:
+                mask_data[new_x, new_y] = 255
 
     return mask
 

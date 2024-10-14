@@ -14,7 +14,7 @@ from prompts.model.modify import ModifyType
 from processor import utils
 
 
-class ImageProcessorApp:
+class EntranceApp:
     def __init__(self):
         self.image_processor = ImageProcessor()
 
@@ -24,11 +24,23 @@ class ImageProcessorApp:
         # self.modify_types = [ModifyType.OBJECT_MOVING, ModifyType.OBJECT_PASTING]
         self.modify_types = [ModifyType.OBJECT_MOVING]
 
-        self.modify_mask_path = Path(os.getenv("MODIFY_MASK_PATH", target_path / "modify_mask"))
+        self.modify_mask_path = MODIFY_PATH
         if not self.modify_mask_path.exists():
             self.modify_mask_path.mkdir(parents=True, exist_ok=True)
 
+        self.moving_mask_dir = self.modify_mask_path / ModifyType.OBJECT_MOVING.value / "masks"
+        self.moving_mask_dir.mkdir(parents=True, exist_ok=True)
+
+        self.desc_save_path = MODIFY_PATH / "description"
+        self.desc_save_path.mkdir(parents=True, exist_ok=True)
+
     def run(self, image_path: Path, detail_info):
+        image_path = Path(image_path)
+        save_path = self.desc_save_path / f"{image_path.stem}.json"
+        if save_path.is_file():
+            print(f"[{image_path.stem}]:Json文件已存在，跳过")
+            return
+
         # 加载图像信息
         if isinstance(image_path, str):
             image_path = Path(image_path)
@@ -77,60 +89,56 @@ class ImageProcessorApp:
 
         # 根据描述修改图像信息
         for modify_type in self.modify_types:
-            start_point = utils.calculate_bbox_center(detail_info["ann"]["bbox"])
-            target_object = {
-                "object": desc_info["mask_object_info"]["object"],
-                "referring": desc_info["mask_object_info"]["object_referring"],
-                "segmentation_position": segmentation,
-                "start_point": utils.get_scaled_coordinates(start_point, scale_factor),
-            }
+            result[modify_type.value] = self.moving(image_path, detail_info, desc_info, segmentation, image_info, scale_factor, src_mask)
 
-            modify_detail = self.modify_desc.run(image_info, target_object, modify_type)
-
-            # 缩放像素点
-            need_scales = modify_detail.need_scales()
-            for item in need_scales:
-                old_pos = getattr(modify_detail, item)
-                new_pos = utils.get_original_coordinates(old_pos, scale_factor)
-                setattr(modify_detail, item, new_pos)
-
-            # 保存处理后的MASK图
-            modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, "copying")
-            mask_save_dir = self.modify_mask_path / modify_type.value
-            mask_save_dir.mkdir(parents=True, exist_ok=True)
-            save_path = mask_save_dir / f"mask_{image_path.stem}.png"
-            modify_mask.save(save_path)
-
-            # 保存result
-            tmp = modify_detail.model_dump()
-            tmp["start_point"] = start_point
-            tmp["mask"] = save_path.absolute().as_posix()
-            result[modify_type.value] = tmp
-
+        self.save_json(save_path, result)
         return result
 
+    def moving(self, image_path: Path, detail_info, desc_info, segmentation, image_info, scale_factor, src_mask):
+        start_point = utils.calculate_bbox_center(detail_info["ann"]["bbox"])
+        target_object = {
+            "object": desc_info["mask_object_info"]["object"],
+            "referring": desc_info["mask_object_info"]["object_referring"],
+            "segmentation_position": segmentation,
+            "start_point": utils.get_scaled_coordinates(start_point, scale_factor),
+        }
 
-def save_json(save_path: Path, result: dict):
-    with open(save_path, "w", encoding="utf-8") as file:
-        json.dump(result, file, ensure_ascii=False, indent=4, sort_keys=True)
+        modify_detail = self.modify_desc.run(image_info, target_object, ModifyType.OBJECT_MOVING)
 
+        # 缩放像素点
+        need_scales = modify_detail.need_scales()
+        for item in need_scales:
+            old_pos = getattr(modify_detail, item)
+            new_pos = utils.get_original_coordinates(old_pos, scale_factor)
+            # 缩放后的点不能超过图像边界
+            assert (
+                new_pos[0] >= 0 and new_pos[0] < src_mask.size[0] and new_pos[1] >= 0 and new_pos[1] < src_mask.size[1]
+            ), f"移动目标点{item}超出图像边界"
+            setattr(modify_detail, item, new_pos)
 
-def process_images(image_path, detail_info, is_replace=True):
-    image_path = Path(image_path)
-    save_path = save_dir / f"{image_path.stem}.json"
-    if save_path.is_file() and is_replace is False:
-        raise FileExistsError(f"JSON file already exists: {save_path}")
+        # 保存处理后的MASK图
+        modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, "copying")
+        save_path = (self.moving_mask_dir / f"mask_{image_path.stem}.png").absolute().as_posix()
+        modify_mask.save(save_path)
 
-    result = app.run(image_path, detail_info)
-    save_json(save_path, result)
+        # 保存result
+        tmp = modify_detail.model_dump()
+        tmp["start_point"] = start_point
+        tmp["mask"] = save_path
+        return tmp
+
+    @staticmethod
+    def save_json(save_path: Path, result: dict):
+        with open(save_path, "w", encoding="utf-8") as file:
+            json.dump(result, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == "__main__":
-    target_path = Path("./examples")
-    save_dir: Path = target_path / "result"
-    save_dir.mkdir(parents=True, exist_ok=True)
+    TARGET_PATH = Path("./examples")
+    MODIFY_PATH = TARGET_PATH
+    MODIFY_PATH.mkdir(parents=True, exist_ok=True)
 
-    app = ImageProcessorApp()
+    app = EntranceApp()
     with open("/home/yuyangxin/data/experiment/result.json", "r", encoding="utf-8") as file:
         image_info = json.load(file)
 
@@ -140,8 +148,8 @@ if __name__ == "__main__":
         # 创建一个future到image_info的映射
         future_to_image: dict = {}
         for path, detail_info in image_info.items():
-            future_to_image[executor.submit(process_images, path, detail_info)] = path
-            if len(future_to_image) >= 1:
+            future_to_image[executor.submit(app.run, path, detail_info)] = path
+            if len(future_to_image) >= 200:
                 break
 
         # 处理完成的任务
@@ -152,9 +160,7 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"Error processing {image_path}: {traceback.format_exc()}")
                 error_info.append({"image_path": image_path, "error_info": str(traceback.format_exc())})
-            else:
-                print(f"Processed {image_path}")
 
     # 保存错误信息
     if error_info:
-        save_json("error_path.json", error_info)
+        EntranceApp.save_json("error_path.json", error_info)

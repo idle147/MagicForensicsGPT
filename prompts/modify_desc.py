@@ -41,3 +41,16 @@ class ModifyDesc(BasePrompt):
         self.template = self.load_template(modify_type, self.parser)
         self.chain = self.template | self.llm | self.parser
         return self.chain.invoke({"image_data": [image_info], "target_info": object_infos})
+
+    def retry(self, image_info, object_infos, modify_type: ModifyType) -> BaseModel:
+        if modify_type == ModifyType.OBJECT_MOVING:
+            pydantic_object = RepMovingModel
+        else:
+            raise ValueError(f"Unsupported modify type: {modify_type}")
+
+        # Create the output parser
+        self.parser = PydanticOutputParser(pydantic_object=pydantic_object)
+        
+        self.template = self.load_template(modify_type, self.parser)
+        self.chain = self.template | self.llm | self.parser
+        return self.chain.invoke({"image_data": [image_info], "target_info": object_infos})
