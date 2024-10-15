@@ -4,6 +4,8 @@ from pathlib import Path
 from PIL import Image, ImageTk, ImageDraw
 import json
 
+import numpy as np
+
 
 # 定义主应用程序类
 class ImageSelectorApp:
@@ -45,15 +47,14 @@ class ImageSelectorApp:
         self.inner_frame.bind("<Configure>", self.on_frame_configure)
 
         # 初始化图片标签和文本标签
+        labels = ["Real", "Real Mask", "Real Cover", "Fake", "Fake Mask", "Fake Cover"]
         self.image_labels, self.text_labels = [], []
-        for i, text in enumerate(["Real", "Fake", "Mask", "Cover"]):
-            label = ttk.Label(self.inner_frame)
-            label.grid(row=i, column=0, padx=5, pady=5, sticky="w")
+        for i, text in enumerate(labels):
+            label = ttk.Label(self.inner_frame, text=text)
+            row = i // 4  # Integer division to determine the row
+            column = i % 4  # Modulo operation to determine the column
+            label.grid(row=row, column=column, padx=5, pady=5, sticky="w")
             self.image_labels.append(label)
-
-            text_label = ttk.Label(self.inner_frame, text=text)
-            text_label.grid(row=i, column=1, padx=5, pady=5, sticky="w")
-            self.text_labels.append(text_label)
 
         # 创建按钮区域（右侧）
         self.button_frame = ttk.Frame(self.main_frame, width=200)
@@ -87,6 +88,44 @@ class ImageSelectorApp:
         # 绑定窗口关闭事件
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    def show_images(self):
+        if not self.img_info:
+            messagebox.showwarning("警告", "没有找到图片！")
+            return
+
+        if self.current_index >= len(self.img_info):
+            self.current_index = len(self.img_info) - 1
+
+        img_info = self.img_info[self.current_index]
+
+        # Load images
+        real_img, fake_img, real_mask_img, fake_mask_img = self.load_images(img_info)
+
+        # Create cover images
+        real_cover_img = self.create_cover_image(real_img, real_mask_img)
+        fake_cover_img = self.create_cover_image(fake_img, fake_mask_img)
+
+        # Get current scale
+        scale = self.scale_var.get()
+
+        # Display images
+        left_positions = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]  # First row  # Second row
+        left_images = self.resize_and_to_tkinter_images(
+            scale,
+            real_img,
+            real_mask_img,
+            real_cover_img,
+            fake_img,
+            fake_mask_img,
+            fake_cover_img,
+        )
+        # Display images in the specified positions
+        for i, (label, image, pos) in enumerate(zip(self.image_labels, left_images, left_positions)):
+            row, col = pos
+            label.grid(row=row, column=col, padx=5, pady=5)
+            label.config(image=image)
+            label.image = image  # Keep a reference to prevent garbage collection
+
     def on_frame_configure(self, event):
         # 更新滚动区域
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -98,83 +137,64 @@ class ImageSelectorApp:
     def get_img_info(self):
         # 获取图片信息
         real_img_dir = self.img_dir / "images"
+        real_mask_img_dir = self.img_dir / "masks"
         fake_img_dir: Path = self.img_dir / "moving object" / "images"
-        mask_img_dir = self.img_dir / "moving object" / "masks"
+        fake_mask_img_dir = self.img_dir / "moving object" / "masks"
 
         ret = []
         for fake_img_path in fake_img_dir.rglob("*.png"):
             file_name = fake_img_path.stem.split("_")[-1]
-            mask_img_path = mask_img_dir / f"mask_{file_name}.png"
-            if not mask_img_path.exists():
-                print(f"[MASK]{mask_img_path} 不存在")
+            fake_mask_img_path = fake_mask_img_dir / f"mask_{file_name}.png"
+            if not fake_mask_img_path.exists():
+                print(f"[FAKE][MASK]{fake_mask_img_path} 不存在")
                 continue
             real_img_path = real_img_dir / f"{file_name}.jpg"
             if not real_img_path.exists():
                 print(f"[REAL]{real_img_path} 不存在")
                 continue
-            ret.append({"real": real_img_path, "fake": fake_img_path, "mask": mask_img_path})
+            # 从real_mask_img_dir中检索包含file_name的字符串
+            real_mask_img_path = real_mask_img_dir / f"mask_{file_name}.jpg"
+            if not real_mask_img_path.exists():
+                print(f"[REAL][MASK]:{real_mask_img_path} 不存在")
+            ret.append(
+                {
+                    "real": real_img_path,
+                    "real_mask": real_mask_img_path,
+                    "fake": fake_img_path,
+                    "fake_mask": fake_mask_img_path,
+                }
+            )
         return ret
 
-    def show_images(self):
-        if not self.img_info:
-            messagebox.showwarning("警告", "没有找到图片！")
-            return
-
-        if self.current_index >= len(self.img_info):
-            self.current_index = len(self.img_info) - 1
-
-        img_info = self.img_info[self.current_index]
-
-        # 打开图片
+    def load_images(self, img_info):
         real_img = Image.open(img_info["real"])
         fake_img = Image.open(img_info["fake"])
-        mask_img = Image.open(img_info["mask"]).convert("L")
+        real_mask_img = Image.open(img_info["real_mask"]).convert("L")
+        fake_mask_img = Image.open(img_info["fake_mask"]).convert("L")
+        return real_img, fake_img, real_mask_img, fake_mask_img
 
-        # 创建覆盖图像
-        cover_img = real_img.copy()
-        mask_rgba = Image.new("RGBA", real_img.size)
+    def create_cover_image(self, base_img, mask_img):
+        cover_img = base_img.copy()
+        mask_rgba = Image.new("RGBA", base_img.size)
         draw = ImageDraw.Draw(mask_rgba)
-        draw.bitmap((0, 0), mask_img, fill=(255, 0, 0, 192))  # 75% 透明度
-        cover_img = Image.alpha_composite(cover_img.convert("RGBA"), mask_rgba)
+        draw.bitmap((0, 0), mask_img, fill=(255, 0, 0, 180))  # 75% opacity
+        return Image.alpha_composite(cover_img.convert("RGBA"), mask_rgba)
 
-        # 获取当前缩放比例
-        scale = self.scale_var.get()
+    def create_combined_mask(self, mask_img):
+        mask_array = np.array(mask_img)
+        combined_mask_array = (mask_array // 2).astype(np.uint8)
+        return Image.fromarray(combined_mask_array, mode="L")
 
-        # 调整图片大小
-        real_img = real_img.resize((int(real_img.width * scale), int(real_img.height * scale)), Image.Resampling.LANCZOS)
-        fake_img = fake_img.resize((int(fake_img.width * scale), int(fake_img.height * scale)), Image.Resampling.LANCZOS)
-        mask_img = mask_img.resize((int(mask_img.width * scale), int(mask_img.height * scale)), Image.Resampling.LANCZOS)
-        cover_img = cover_img.resize((int(cover_img.width * scale), int(cover_img.height * scale)), Image.Resampling.LANCZOS)
-
-        # 转换为 Tkinter 图片
-        self.tk_real = ImageTk.PhotoImage(real_img)
-        self.tk_fake = ImageTk.PhotoImage(fake_img)
-        self.tk_mask = ImageTk.PhotoImage(mask_img)
-        self.tk_cover = ImageTk.PhotoImage(cover_img)
-
-        # 显示图片在2x2网格中
-        positions = [(0, 0), (0, 1), (1, 0), (1, 1)]
-        images = [self.tk_real, self.tk_fake, self.tk_mask, self.tk_cover]
-
-        for i, (label, image, text_label, pos) in enumerate(zip(self.image_labels, images, self.text_labels, positions)):
-            row, col = pos
-            label.grid(row=row * 2, column=col, padx=5, pady=5)
-            label.config(image=image)
-            label.image = image
-            text_label.grid(row=row * 2 + 1, column=col, padx=5, pady=5, sticky="w")
-
-        # # 显示图片
-        # self.image_labels[0].config(image=self.tk_real)
-        # self.image_labels[0].image = self.tk_real
-
-        # self.image_labels[1].config(image=self.tk_fake)
-        # self.image_labels[1].image = self.tk_fake
-
-        # self.image_labels[2].config(image=self.tk_mask)
-        # self.image_labels[2].image = self.tk_mask
-
-        # self.image_labels[3].config(image=self.tk_cover)
-        # self.image_labels[3].image = self.tk_cover
+    @staticmethod
+    def resize_and_to_tkinter_images(scale, *images):
+        resize_img = [img.resize((int(img.width * scale), int(img.height * scale)), Image.Resampling.LANCZOS) for img in images]
+        tk_images = []
+        for img in resize_img:
+            if img is not None and isinstance(img, Image.Image):
+                tk_images.append(ImageTk.PhotoImage(img))
+            else:
+                tk_images.append(None)
+        return tk_images
 
     def show_prev_group(self):
         if self.current_index > 0:

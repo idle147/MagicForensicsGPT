@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import random
 import shutil
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,7 +54,7 @@ save_path = Path("/home/yuyangxin/data/experiment/examples")
 if save_path.exists() and save_path.is_dir():
     shutil.rmtree(save_path)
 
-target_mask_dir = save_path / "mask"
+target_mask_dir = save_path / "masks"
 target_img_dir = save_path / "images"
 save_path.mkdir(parents=True, exist_ok=True)
 target_mask_dir.mkdir(parents=True, exist_ok=True)
@@ -62,7 +63,8 @@ target_img_dir.mkdir(parents=True, exist_ok=True)
 coco, coco_caps = COCO(ann_file), COCO(caption_file)
 
 # Get all image ids and sort them
-img_ids = sorted(coco.getImgIds())
+img_ids = coco.getImgIds()
+random.shuffle(img_ids)
 
 # Dictionary to store image paths and corresponding segmentation info
 output_dict = {}
@@ -104,7 +106,7 @@ for img_id in img_ids:
                     mask = mask[:, :, 0]
 
                 # Save the mask image
-                mask_image_path = target_mask_dir / f'mask_{img_id}_{ann["id"]}.png'
+                mask_image_path = target_mask_dir / f"mask_{image_path.name}"
                 mask_image = Image.fromarray(mask.astype(np.uint8) * 255, mode="L")
                 mask_image.save(mask_image_path)
 
