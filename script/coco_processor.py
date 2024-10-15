@@ -35,7 +35,7 @@ img_ids = sorted(coco.getImgIds())
 output_dict = {}
 count = 0
 
-max_value, min_value = 64, 32
+max_value, min_value = 128, 32
 
 for img_id in img_ids:
     if count > 500:

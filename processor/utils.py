@@ -149,7 +149,7 @@ def draw_rectangle_from_diagonal(image, points, line_color=(255, 0, 0), line_wid
     return image
 
 
-def mask_change(mask, start_point, end_point, type="moving") -> Image:
+def mask_change(mask, start_point, end_point, is_moving=True) -> Image:
     # Unpack start and end points
     start_x, start_y = start_point
     end_x, end_y = end_point
@@ -178,7 +178,7 @@ def mask_change(mask, start_point, end_point, type="moving") -> Image:
         offset_x = max(-min_x, min(offset_x, width - 1 - max_x))
         offset_y = max(-min_y, min(offset_y, height - 1 - max_y))
 
-        if type == "moving":
+        if is_moving:
             # Remove the region from the original position
             for x, y in region:
                 mask_data[x, y] = 0
@@ -202,5 +202,5 @@ if __name__ == "__main__":
             mask_data[2 + i, 2 + j] = 1
     start_point = (3, 3)
     end_point = (6, 6)
-    mask = mask_change(mask, start_point, end_point, type="moving")
+    mask = mask_change(mask, start_point, end_point, is_moving="moving")
     mask.show()

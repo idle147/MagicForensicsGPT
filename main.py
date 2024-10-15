@@ -110,14 +110,11 @@ class EntranceApp:
         for item in need_scales:
             old_pos = getattr(modify_detail, item)
             new_pos = utils.get_original_coordinates(old_pos, scale_factor)
-            # 缩放后的点不能超过图像边界
-            assert (
-                new_pos[0] >= 0 and new_pos[0] < src_mask.size[0] and new_pos[1] >= 0 and new_pos[1] < src_mask.size[1]
-            ), f"移动目标点{item}超出图像边界"
-            setattr(modify_detail, item, new_pos)
+            # 缩放后的点不能超过图像边界, 如果超出边界,则取边界点
+            setattr(modify_detail, item, [max(0, min(new_pos[0], src_mask[0])), max(0, min(new_pos[1], src_mask[1]))])
 
-        # 保存处理后的MASK图
-        modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, "copying")
+        # 保存目标位置的MASK图
+        modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, is_moving=True)
         save_path = (self.moving_mask_dir / f"mask_{image_path.stem}.png").absolute().as_posix()
         modify_mask.save(save_path)
 
