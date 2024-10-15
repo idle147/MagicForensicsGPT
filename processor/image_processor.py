@@ -9,7 +9,7 @@ from torchvision import transforms as T
 
 
 class ImageProcessor:
-    def __init__(self, max_width=256, max_height=256):
+    def __init__(self, max_width=None, max_height=None):
         """
         初始化ImageProcessor类。
         """
@@ -17,6 +17,8 @@ class ImageProcessor:
         self.max_height = max_height
 
     def resize_image(self, image):
+        if self.max_width is None and self.max_height is None:
+            return image, 1
         # 获取原始图像的宽度和高度
         original_width, original_height = image.size
 

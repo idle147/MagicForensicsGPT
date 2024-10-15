@@ -42,10 +42,10 @@ class EntranceApp:
             return
 
         # 加载图像信息
+        print(f"开始处理图片: {image_path}")
         if isinstance(image_path, str):
             image_path = Path(image_path)
         assert image_path.exists(), f"Image file not found: {image_path}"
-
         mask_path = Path(detail_info["mask_path"])
 
         # 保存结果
@@ -66,15 +66,15 @@ class EntranceApp:
                     "type": "image_url",
                     "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(trans_mask)}"},
                 },
-                {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(trans_combine_img)}"},
-                },
             ]
         )
 
         # 获取图像描述
-        segmentation = utils.get_scaled_coordinates(detail_info["ann"]["segmentation"][0], scale_factor)
+        try:
+            src_seg = detail_info["ann"]["segmentation"][0]
+        except:
+            src_seg = detail_info["ann"]["segmentation"]["counts"]
+        segmentation = utils.get_scaled_coordinates(src_seg, scale_factor)
         full_description_res = self.full_desc.run(image_info, segmentation, detail_info["captions"])
         desc_info = full_description_res.model_dump()
 
@@ -98,7 +98,7 @@ class EntranceApp:
         start_point = utils.calculate_bbox_center(detail_info["ann"]["bbox"])
         target_object = {
             "object": desc_info["mask_object_info"]["object"],
-            "referring": desc_info["mask_object_info"]["object_referring"],
+            "referring": desc_info["mask_object_info"]["referring"],
             "segmentation_position": segmentation,
             "start_point": utils.get_scaled_coordinates(start_point, scale_factor),
         }
@@ -106,12 +106,13 @@ class EntranceApp:
         modify_detail = self.modify_desc.run(image_info, target_object, ModifyType.OBJECT_MOVING)
 
         # 缩放像素点
-        need_scales = modify_detail.need_scales()
-        for item in need_scales:
-            old_pos = getattr(modify_detail, item)
-            new_pos = utils.get_original_coordinates(old_pos, scale_factor)
-            # 缩放后的点不能超过图像边界, 如果超出边界,则取边界点
-            setattr(modify_detail, item, [max(0, min(new_pos[0], src_mask[0])), max(0, min(new_pos[1], src_mask[1]))])
+        if scale_factor != 1:
+            need_scales = modify_detail.need_scales()
+            for item in need_scales:
+                old_pos = getattr(modify_detail, item)
+                new_pos = utils.get_original_coordinates(old_pos, scale_factor)
+                # 缩放后的点不能超过图像边界, 如果超出边界,则取边界点
+                setattr(modify_detail, item, [max(0, min(new_pos[0], src_mask[0])), max(0, min(new_pos[1], src_mask[1]))])
 
         # 保存目标位置的MASK图
         modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, is_moving=True)
@@ -146,8 +147,6 @@ if __name__ == "__main__":
         future_to_image: dict = {}
         for path, detail_info in image_info.items():
             future_to_image[executor.submit(app.run, path, detail_info)] = path
-            if len(future_to_image) >= 200:
-                break
 
         # 处理完成的任务
         for future in concurrent.futures.as_completed(future_to_image):
@@ -155,8 +154,11 @@ if __name__ == "__main__":
             try:
                 future.result()  # 获取结果
             except Exception as e:
-                print(f"Error processing {image_path}: {traceback.format_exc()}")
-                error_info.append({"image_path": image_path, "error_info": str(traceback.format_exc())})
+                info = traceback.format_exc()
+                if "错误" in info:
+                    info = "图片不在现实中存在!"
+                print(f"Error processing {image_path}: {info}")
+                error_info.append({"image_path": image_path, "error_info": info})
 
     # 保存错误信息
     if error_info:

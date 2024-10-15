@@ -11,7 +11,7 @@ for json_file in target_path.glob("*.json"):
     with open(json_file, "r") as f:
         json_data = json.load(f)
 
-    object_referring = json_data["modification"]["object_info"]["object_referring"]
+    object_referring = json_data["modification"]["object_info"]["referring"]
     # 发送请求
     data = {
         "image_path": json_data["origin_img_path"],

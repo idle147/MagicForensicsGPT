@@ -6,9 +6,42 @@ import matplotlib.pyplot as plt
 from pycocotools.coco import COCO
 from pycocotools import mask as maskUtils
 from PIL import Image
-from collections import defaultdict
+import cv2
 
-#
+# import dlib
+from facenet_pytorch import MTCNN
+import torch
+
+
+def detect_frontal_faces(image):
+    # Initialize MTCNN for face detection
+    mtcnn = MTCNN(keep_all=True, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+    # Load the image
+    if isinstance(image, str) or isinstance(image, Path):
+        image = cv2.imread(image)
+        if image is None:
+            print("Could not read the image.")
+            return False
+        # Convert the image to RGB (MTCNN expects RGB images)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    else:
+        # Convert the image to RGB (MTCNN expects RGB images)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Convert the image to a PIL Image
+    image = Image.fromarray(image)
+
+    # Detect faces
+    boxes, _ = mtcnn.detect(image)
+
+    # Check if any faces are detected
+    if boxes is not None and len(boxes) > 0:
+        return True
+    else:
+        return False
+
+
 # Initialize COCO api for instance annotations
 data_dir = Path("/home/yuyangxin/data/dataset/MSCOCO")
 data_type = "train2017"
@@ -48,8 +81,11 @@ for img_id in img_ids:
     # Load the image
     img = coco.loadImgs(img_id)[0]
     image_path = data_dir / data_type / img["file_name"]
-    image = plt.imread(image_path)
+    if detect_frontal_faces(image_path) == True:
+        print(f"{image_path}: 发现人脸,跳过")
+        continue
 
+    image = plt.imread(image_path)
     # Get captions for the image
     cap_ids = coco_caps.getAnnIds(imgIds=img_id)
     caps = coco_caps.loadAnns(cap_ids)

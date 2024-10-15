@@ -8,7 +8,7 @@ class DescriptionModel(BaseModel):
     brief: str = Field(description="A brief description of the picture")
     detail: str = Field(description="A detail description of the picture")
     object_infos: List[ObjectInfo] = Field(description="Every objects in the picture")
-    mask_object_info: ObjectInfo = Field(description="objects in the mask")
+    mask_object_info: ObjectInfo = Field(description="objects in the mask, Don't give coordinates")
 
 
 class SaveDescriptionModel(DescriptionModel):
