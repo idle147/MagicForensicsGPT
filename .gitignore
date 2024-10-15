@@ -5,3 +5,4 @@ examples/*
 /examples
 /test
 error_path.json
+result.json
