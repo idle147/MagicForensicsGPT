@@ -3,9 +3,11 @@ from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
 
+import numpy as np
 import requests
 from PIL import Image
 from torchvision import transforms as T
+import cv2
 
 
 class ImageProcessor:
@@ -49,11 +51,17 @@ class ImageProcessor:
 
     @staticmethod
     def get_webp_base64(image):
-        buffered = BytesIO()
-        image.save(buffered, format="WEBP")
-        trans_image_webp = base64.b64encode(buffered.getvalue()).decode()
-        buffered.close()
+        with BytesIO() as buffered:
+            image.save(buffered, format="WEBP")
+            trans_image_webp = base64.b64encode(buffered.getvalue()).decode()
         return trans_image_webp
+
+    @staticmethod
+    def get_png_base64(image):
+        with BytesIO() as buffered:
+            image.save(buffered, format="png")
+            trans_image_png = base64.b64encode(buffered.getvalue()).decode()
+        return trans_image_png
 
     def load_image(self, image_file: Path, image_type="RGB"):
         """
@@ -63,9 +71,35 @@ class ImageProcessor:
             # 将图片下载到本地, 后进行处理
             src_image = Image.open(requests.get(image_file, stream=True).raw).convert(image_type)
         else:
-            src_image = Image.open(image_file).convert(image_type)
+            src_image = Image.open(image_file)
         trans_image, scale_ratio = self.resize_image(src_image)
         return src_image, trans_image, scale_ratio
+
+    def process_mask(self, src_mask, target_mask, scale_ratio):
+        def read_mask(mask):
+            if isinstance(mask, (str, Path)):
+                return cv2.imread(str(mask), cv2.IMREAD_GRAYSCALE)
+            return mask
+
+        # 读取mask图像
+        src_mask_img = read_mask(src_mask)
+        target_mask_img = read_mask(target_mask)
+
+        # 确保图像大小相同
+        if src_mask_img.shape != target_mask_img.shape:
+            raise ValueError("Source and target masks must have the same dimensions.")
+
+        # 合并target_mask和target_mask_img, 要求相同的像素保留, 不同的像素取大值
+        combined_mask = np.maximum(src_mask_img, target_mask_img)
+
+        # 如果需要缩放比例，可以在此处应用缩放
+        if scale_ratio != 1.0:
+            new_size = (int(combined_mask.shape[1] * scale_ratio), int(combined_mask.shape[0] * scale_ratio))
+            combined_mask = cv2.resize(combined_mask, new_size, interpolation=cv2.INTER_NEAREST)
+
+        # 转为PIL图像
+        combined_mask = Image.fromarray(combined_mask)
+        return combined_mask
 
     @staticmethod
     def combine_images(src_img, mask_img):
