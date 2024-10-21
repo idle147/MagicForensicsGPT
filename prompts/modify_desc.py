@@ -1,8 +1,8 @@
-from typing import List
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 
-from .model import ModifyType, RepMovingModel
+from .enum import ModifyType
+from .model import RepMovingModel, RepResizingModel
 from .base_prompt import BasePrompt
 from pydantic import BaseModel
 
@@ -33,6 +33,8 @@ class ModifyDesc(BasePrompt):
     def run(self, image_info, object_infos, modify_type: ModifyType) -> BaseModel:
         if modify_type == ModifyType.OBJECT_MOVING:
             pydantic_object = RepMovingModel
+        elif modify_type == ModifyType.OBJECT_RESIZING:
+            pydantic_object = RepResizingModel
         else:
             raise ValueError(f"Unsupported modify type: {modify_type}")
 
@@ -50,7 +52,7 @@ class ModifyDesc(BasePrompt):
 
         # Create the output parser
         self.parser = PydanticOutputParser(pydantic_object=pydantic_object)
-        
+
         self.template = self.load_template(modify_type, self.parser)
         self.chain = self.template | self.llm | self.parser
         return self.chain.invoke({"image_data": [image_info], "target_info": object_infos})

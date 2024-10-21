@@ -10,7 +10,7 @@ from processor.image_processor import ImageProcessor
 from config import load_config
 from prompts import FullDescription, ModifyDesc
 import concurrent.futures
-from prompts.model.modify import ModifyType
+from prompts.enum import ModifyType
 from processor import utils
 
 
@@ -21,15 +21,13 @@ class EntranceApp:
         self.llm = ChatOpenAI(**load_config(), timeout=300)
         self.full_desc = FullDescription(self.llm)
         self.modify_desc = ModifyDesc(self.llm)
-        # self.modify_types = [ModifyType.OBJECT_MOVING, ModifyType.OBJECT_PASTING]
-        self.modify_types = [ModifyType.OBJECT_MOVING]
+        self.modify_types = [ModifyType.OBJECT_MOVING, ModifyType.OBJECT_RESIZING]
 
-        self.modify_mask_path = MODIFY_PATH
-        if not self.modify_mask_path.exists():
-            self.modify_mask_path.mkdir(parents=True, exist_ok=True)
-
-        self.moving_mask_dir = self.modify_mask_path / ModifyType.OBJECT_MOVING.value / "masks"
-        self.moving_mask_dir.mkdir(parents=True, exist_ok=True)
+        self.modify_mask_path: dict[str, Path] = {}
+        for modify_type in self.modify_types:
+            path = MODIFY_PATH / modify_type.value / "masks"
+            self.modify_mask_path[modify_type] = path
+            path.mkdir(parents=True, exist_ok=True)
 
         self.desc_save_path = MODIFY_PATH / "description"
         self.desc_save_path.mkdir(parents=True, exist_ok=True)
@@ -37,24 +35,23 @@ class EntranceApp:
     def run(self, image_path: Path, detail_info):
         image_path = Path(image_path)
         save_path = self.desc_save_path / f"{image_path.stem}.json"
+        result = {}
+
         if save_path.is_file():
-            print(f"[{image_path.stem}]:Json文件已存在，跳过")
-            return
+            print(f"[{image_path.stem}]:Json文件已存在，加载json文件")
+            with open(save_path, "r", encoding="utf-8") as json_file:
+                result = json.load(json_file)
 
         # 加载图像信息
         print(f"开始处理图片: {image_path}")
-        if isinstance(image_path, str):
-            image_path = Path(image_path)
         assert image_path.exists(), f"Image file not found: {image_path}"
         mask_path = Path(detail_info["mask_path"])
 
-        # 保存结果
         src_img, trans_img, scale_factor = self.image_processor.load_image(image_path)
         src_mask, trans_mask, _ = self.image_processor.load_image(mask_path, "1")
         assert src_img.size == src_mask.size, "图像和MASK的尺寸大小不一致"
-
-        trans_combine_img = self.image_processor.combine_images(trans_img, trans_mask)
-        assert trans_img.size == trans_mask.size == trans_combine_img.size, "三者mask的尺寸不一致"
+        # trans_combine_img = self.image_processor.combine_images(trans_img, trans_mask)
+        # assert trans_img.size == trans_mask.size == trans_combine_img.size, "三者mask的尺寸不一致"
 
         image_info = HumanMessage(
             content=[
@@ -69,32 +66,44 @@ class EntranceApp:
             ]
         )
 
-        # 获取图像描述
+        # 获取分割的物体信息
         try:
             src_seg = detail_info["ann"]["segmentation"][0]
         except:
             src_seg = detail_info["ann"]["segmentation"]["counts"]
         segmentation = utils.get_scaled_coordinates(src_seg, scale_factor)
-        full_description_res = self.full_desc.run(image_info, segmentation, detail_info["captions"])
-        desc_info = full_description_res.model_dump()
 
-        # 保存结果
-        result = {
-            "origin": {
+        if result.get("origin") is None:
+            full_description_res = self.full_desc.run(image_info, segmentation, detail_info["captions"])
+            desc_info = full_description_res.model_dump()
+            # 保存结果
+            result["origin"] = {
                 "image": image_path.as_posix(),
                 "mask": mask_path.as_posix(),
                 "desc": desc_info,
             }
-        }
 
         # 根据描述修改图像信息
         for modify_type in self.modify_types:
-            result[modify_type.value] = self.moving(image_path, detail_info, desc_info, segmentation, image_info, scale_factor, src_mask)
+            name = modify_type.value
+            if result.get(name) is None:
+                result[name] = self.do_modify(
+                    image_path,
+                    detail_info,
+                    result["origin"]["desc"],
+                    segmentation,
+                    image_info,
+                    scale_factor,
+                    src_mask,
+                    modify_type,
+                )
 
         self.save_json(save_path, result)
         return result
 
-    def moving(self, image_path: Path, detail_info, desc_info, segmentation, image_info, scale_factor, src_mask):
+    def do_modify(
+        self, image_path: Path, detail_info, desc_info, segmentation, image_info, scale_factor, src_mask, modify_type: ModifyType
+    ):
         start_point = utils.calculate_bbox_center(detail_info["ann"]["bbox"])
         target_object = {
             "object": desc_info["mask_object_info"]["object"],
@@ -103,7 +112,7 @@ class EntranceApp:
             "start_point": utils.get_scaled_coordinates(start_point, scale_factor),
         }
 
-        modify_detail = self.modify_desc.run(image_info, target_object, ModifyType.OBJECT_MOVING)
+        modify_detail = self.modify_desc.run(image_info, target_object, modify_type)
 
         # 缩放像素点
         if scale_factor != 1:
@@ -115,18 +124,22 @@ class EntranceApp:
                 setattr(modify_detail, item, [max(0, min(new_pos[0], src_mask[0])), max(0, min(new_pos[1], src_mask[1]))])
 
         # 保存目标位置的MASK图
-        modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, is_moving=True)
-        save_path = (self.moving_mask_dir / f"mask_{image_path.stem}.png").absolute().as_posix()
-        modify_mask.save(save_path)
+        ret = modify_detail.model_dump()
 
-        # 保存result
-        tmp = modify_detail.model_dump()
-        tmp["start_point"] = start_point
-        tmp["mask"] = save_path
-        return tmp
+        if modify_type == ModifyType.OBJECT_MOVING:
+            modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, is_moving=True)
+            save_path = (self.modify_mask_path[modify_type] / f"mask_{image_path.stem}.png").absolute().as_posix()
+            modify_mask.save(save_path)
+            ret["mask"] = save_path
+            ret["start_point"] = start_point
+
+        return ret
 
     @staticmethod
     def save_json(save_path: Path, result: dict):
+        if DEBUG:
+            print("debug模式，跳过相关内容")
+            return
         with open(save_path, "w", encoding="utf-8") as file:
             json.dump(result, file, ensure_ascii=False, indent=4)
 
@@ -135,30 +148,36 @@ if __name__ == "__main__":
     TARGET_PATH = Path("./examples")
     MODIFY_PATH = TARGET_PATH
     MODIFY_PATH.mkdir(parents=True, exist_ok=True)
+    DEBUG = False
 
     app = EntranceApp()
     with open("/home/yuyangxin/data/experiment/result.json", "r", encoding="utf-8") as file:
         image_info = json.load(file)
 
     error_info = []
-    # 线程池操作
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # 创建一个future到image_info的映射
-        future_to_image: dict = {}
+    if DEBUG:
+        # 单线程操作
         for path, detail_info in image_info.items():
-            future_to_image[executor.submit(app.run, path, detail_info)] = path
+            app.run(path, detail_info)
+    else:
+        # 线程池操作
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # 创建一个future到image_info的映射
+            future_to_image: dict = {}
+            for path, detail_info in image_info.items():
+                future_to_image[executor.submit(app.run, path, detail_info)] = path
 
-        # 处理完成的任务
-        for future in concurrent.futures.as_completed(future_to_image):
-            image_path = future_to_image[future]
-            try:
-                future.result()  # 获取结果
-            except Exception as e:
-                info = traceback.format_exc()
-                if "错误" in info:
-                    info = "图片不在现实中存在!"
-                print(f"Error processing {image_path}: {info}")
-                error_info.append({"image_path": image_path, "error_info": info})
+            # 处理完成的任务
+            for future in concurrent.futures.as_completed(future_to_image):
+                image_path = future_to_image[future]
+                try:
+                    future.result()  # 获取结果
+                except Exception as e:
+                    info = traceback.format_exc()
+                    if "错误" in info:
+                        info = "图片不在现实中存在!"
+                    print(f"Error processing {image_path}: {info}")
+                    error_info.append({"image_path": image_path, "error_info": info})
 
     # 保存错误信息
     if error_info:
