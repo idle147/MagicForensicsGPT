@@ -1,4 +1,6 @@
-from PIL import Image, ImageDraw
+from typing import List
+from PIL import Image, ImageDraw, ImageChops
+import numpy as np
 
 
 def get_scaled_coordinates(position, scale_factor):
@@ -141,48 +143,53 @@ def draw_rectangle_from_diagonal(image, points, line_color=(255, 0, 0), line_wid
     return image
 
 
-def mask_change(mask, start_point, end_point, is_moving=True) -> Image:
-    # Unpack start and end points
-    start_x, start_y = start_point
-    end_x, end_y = end_point
+def mask_moving(mask: Image, start_point: List[float], end_point: List[float], is_moving=True) -> Image:
+    """
+    # mask是一个PIL.Image对象 像素值255的表示mask需要移动的位置
+    # start_point是起始点的(x, y)坐标，end_point是终止点的(x, y)坐标
+    # 将mask从start_point, 移动到end_point
+    # 如果mask移动后超出图片边界, 则只移动到图片边界
+    # 如果is_moving为True, 则删除移动前的位置
+    # 如果is_moving为False, 则保留移动前的位置
+    """
 
-    # Get mask dimensions
+    # Calculate desired offset
+    desired_dx = int(end_point[0] - start_point[0])
+    desired_dy = int(end_point[1] - start_point[1])
+
+    # Get mask bounding box
+    bbox = mask.getbbox()
+    if not bbox:
+        return mask  # Empty mask
+
+    left, upper, right, lower = bbox
     width, height = mask.size
 
-    # Load mask data
-    mask_data = mask.load()
+    # Calculate maximum allowed movement
+    max_dx_left = -left
+    max_dx_right = width - right
+    max_dy_top = -upper
+    max_dy_bottom = height - lower
 
-    # Find all pixels with value 255
-    region = [(x, y) for y in range(height) for x in range(width) if mask_data[x, y] == 255]
+    # Adjust dx and dy to keep mask within boundaries
+    dx = max(min(desired_dx, max_dx_right), max_dx_left)
+    dy = max(min(desired_dy, max_dy_bottom), max_dy_top)
 
-    # Calculate offset
-    offset_x = end_x - start_x
-    offset_y = end_y - start_y
+    # Shift the mask
+    offset_mask = ImageChops.offset(mask, dx, dy)
 
-    # Determine the bounding box of the region
-    if region:
-        min_x = min(x for x, y in region)
-        max_x = max(x for x, y in region)
-        min_y = min(y for x, y in region)
-        max_y = max(y for x, y in region)
+    if is_moving:
+        # Clear original mask area
+        cleared_mask = mask.copy()
+        draw = ImageDraw.Draw(cleared_mask)
+        draw.rectangle(bbox, fill=0)
+        # Combine shifted mask with cleared mask
+        new_mask = ImageChops.lighter(cleared_mask, offset_mask)
+    else:
+        # Combine original and shifted mask
+        new_mask = ImageChops.lighter(mask, offset_mask)
 
-        # Adjust offset to ensure the region stays within bounds
-        offset_x = max(-min_x, min(offset_x, width - 1 - max_x))
-        offset_y = max(-min_y, min(offset_y, height - 1 - max_y))
-
-        if is_moving:
-            # Remove the region from the original position
-            for x, y in region:
-                mask_data[x, y] = 0
-
-        # Move the region to the new position
-        for x, y in region:
-            new_x = x + offset_x
-            new_y = y + offset_y
-            if 0 <= new_x < width and 0 <= new_y < height:
-                mask_data[new_x, new_y] = 255
-
-    return mask
+    return new_mask
 
 
 if __name__ == "__main__":
@@ -194,5 +201,5 @@ if __name__ == "__main__":
             mask_data[2 + i, 2 + j] = 1
     start_point = (3, 3)
     end_point = (6, 6)
-    mask = mask_change(mask, start_point, end_point, is_moving="moving")
+    mask = mask_moving(mask, start_point, end_point, is_moving="moving")
     mask.show()

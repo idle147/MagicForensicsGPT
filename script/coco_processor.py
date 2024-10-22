@@ -73,7 +73,7 @@ count = 0
 max_value, min_value = 128, 32
 
 for img_id in img_ids:
-    if count > 500:
+    if count > 1000:
         break
     ann_ids = coco.getAnnIds(imgIds=img_id)
     anns = coco.loadAnns(ann_ids)

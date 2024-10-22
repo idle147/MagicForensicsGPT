@@ -61,21 +61,21 @@ class ImageSelectorApp:
         self.button_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
         # 添加按钮，并填充整个按钮区域的宽度
-        self.prev_button = ttk.Button(self.button_frame, text="上一组", command=self.show_prev_group)
+        self.prev_button = ttk.Button(self.button_frame, text="Previous", command=self.show_prev_group)
         self.prev_button.pack(pady=10, padx=10, fill=tk.X)
 
-        self.accept_button = ttk.Button(self.button_frame, text="接受", command=self.accept_images)
+        self.accept_button = ttk.Button(self.button_frame, text="Accept", command=self.accept_images)
         self.accept_button.pack(pady=10, padx=10, fill=tk.X)
 
-        self.reject_button = ttk.Button(self.button_frame, text="拒绝", command=self.reject_images)
+        self.reject_button = ttk.Button(self.button_frame, text="Deny", command=self.reject_images)
         self.reject_button.pack(pady=10, padx=10, fill=tk.X)
 
-        self.next_button = ttk.Button(self.button_frame, text="下一组", command=self.show_next_group)
+        self.next_button = ttk.Button(self.button_frame, text="Next", command=self.show_next_group)
         self.next_button.pack(pady=10, padx=10, fill=tk.X)
 
         # 可选：添加缩放比例选择
         self.scale_var = tk.DoubleVar(value=1.0)
-        self.scale_label = ttk.Label(self.button_frame, text="缩放比例：")
+        self.scale_label = ttk.Label(self.button_frame, text="scale ratio:")
         self.scale_label.pack(pady=(30, 5), padx=10)
         self.scale_slider = ttk.Scale(
             self.button_frame, from_=0.5, to=2.0, orient=tk.HORIZONTAL, variable=self.scale_var, command=self.on_scale_change
@@ -138,8 +138,8 @@ class ImageSelectorApp:
         # 获取图片信息
         real_img_dir = self.img_dir / "images"
         real_mask_img_dir = self.img_dir / "masks"
-        fake_img_dir: Path = self.img_dir / "moving object" / "images"
-        fake_mask_img_dir = self.img_dir / "moving object" / "masks"
+        fake_img_dir: Path = self.img_dir / "moving_object" / "images"
+        fake_mask_img_dir = self.img_dir / "moving_object" / "masks"
 
         ret = []
         for fake_img_path in fake_img_dir.rglob("*.png"):
@@ -229,6 +229,10 @@ class ImageSelectorApp:
 
 # 主程序入口
 if __name__ == "__main__":
+    import matplotlib
+
+    matplotlib.use("AGG")  # 或者PDF, SVG或PS
+
     # 创建主窗口
     root = tk.Tk()
     app = ImageSelectorApp(root, "./examples")

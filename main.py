@@ -86,16 +86,9 @@ class EntranceApp:
         # 根据描述修改图像信息
         for modify_type in self.modify_types:
             name = modify_type.value
-            if result.get(name) is None:
+            if DEBUG or result.get(name) is None:
                 result[name] = self.do_modify(
-                    image_path,
-                    detail_info,
-                    result["origin"]["desc"],
-                    segmentation,
-                    image_info,
-                    scale_factor,
-                    src_mask,
-                    modify_type,
+                    image_path, detail_info, result["origin"]["desc"], segmentation, image_info, scale_factor, src_mask, modify_type
                 )
 
         self.save_json(save_path, result)
@@ -127,7 +120,7 @@ class EntranceApp:
         ret = modify_detail.model_dump()
 
         if modify_type == ModifyType.OBJECT_MOVING:
-            modify_mask = utils.mask_change(src_mask, start_point, modify_detail.end_point, is_moving=True)
+            modify_mask = utils.mask_moving(src_mask, start_point, modify_detail.end_point)
             save_path = (self.modify_mask_path[modify_type] / f"mask_{image_path.stem}.png").absolute().as_posix()
             modify_mask.save(save_path)
             ret["mask"] = save_path
@@ -148,7 +141,7 @@ if __name__ == "__main__":
     TARGET_PATH = Path("./examples")
     MODIFY_PATH = TARGET_PATH
     MODIFY_PATH.mkdir(parents=True, exist_ok=True)
-    DEBUG = False
+    DEBUG = True
 
     app = EntranceApp()
     with open("/home/yuyangxin/data/experiment/result.json", "r", encoding="utf-8") as file:
