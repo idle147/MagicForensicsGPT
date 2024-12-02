@@ -6,12 +6,10 @@ from typing import Optional
 
 
 class ModifyType(Enum):
-    REMOVE = "remove_object"
-    COPY = "copy_object"
-    RECOLORED_MODIFY = "recolored_object"
     OBJECT_RESIZING = "resizing_object"
     OBJECT_MOVING = "moving_object"
-    OBJECT_PASTING = "pasting_object"
+    OBJECT_REMOVING = "removing_object"
+    CONTENT_DRAGGING = "content_dragging"
 
     @classmethod
     def choices(cls):

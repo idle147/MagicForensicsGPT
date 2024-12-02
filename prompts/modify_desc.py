@@ -2,7 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 
 from .enum import ModifyType
-from .model import RepMovingModel, RepResizingModel
+from .model import RepMovingModel, RepResizingModel, ContentDragModel
 from .base_prompt import BasePrompt
 from pydantic import BaseModel
 
@@ -35,6 +35,8 @@ class ModifyDesc(BasePrompt):
             pydantic_object = RepMovingModel
         elif modify_type == ModifyType.OBJECT_RESIZING:
             pydantic_object = RepResizingModel
+        elif modify_type == ModifyType.CONTENT_DRAGGING:
+            return ContentDragModel(editing_procedure=object_infos["object"], end_point=None)
         else:
             raise ValueError(f"Unsupported modify type: {modify_type}")
 

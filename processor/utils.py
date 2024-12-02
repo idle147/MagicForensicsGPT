@@ -1,6 +1,52 @@
+from pathlib import Path
 from typing import List
 from PIL import Image, ImageDraw, ImageChops
+import cv2
 import numpy as np
+
+
+def compare_different(src_img, target_img, ref_mask=None):
+    # 检查图像是否加载成功
+    if src_img is None or target_img is None:
+        raise ValueError("One or both images could not be loaded.")
+
+    if src_img.size != target_img.size:
+        target_img = target_img.resize(src_img.size)
+
+    # 将PIL图像转换为NumPy数组
+    src_array = np.array(src_img)
+    target_array = np.array(target_img)
+
+    # 如果是彩色图像，转换为灰度图像
+    if len(src_array.shape) == 3:
+        src_gray = cv2.cvtColor(src_array, cv2.COLOR_BGR2GRAY)
+        target_gray = cv2.cvtColor(target_array, cv2.COLOR_BGR2GRAY)
+    else:
+        src_gray = src_array
+        target_gray = target_array
+
+    diff = cv2.absdiff(src_gray, target_gray)
+
+    # # 分析差异图像的直方图以确定最佳阈值
+    hist = cv2.calcHist([diff], [0], None, [256], [0, 256])
+    total_pixels = diff.shape[0] * diff.shape[1]
+    cumulative_sum = np.cumsum(hist)
+    threshold_index = np.argmax(cumulative_sum > total_pixels * 0.95)
+
+    # 应用动态阈值以创建二值掩码
+    _, mask = cv2.threshold(diff, threshold_index, 255, cv2.THRESH_BINARY)
+
+    # 使用形态学操作去除噪点
+    kernel_size = max(3, int(min(src_img.size) / 100))  # 根据图像大小动态调整
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    # 如果提供了参考mask，将其与计算的mask结合
+    if ref_mask is not None:
+        ref_mask_array = np.array(ref_mask)
+        mask = cv2.add(mask, ref_mask_array)
+
+    return Image.fromarray(mask)
 
 
 def get_scaled_coordinates(position, scale_factor):
@@ -190,6 +236,80 @@ def mask_moving(mask: Image, start_point: List[float], end_point: List[float], i
         new_mask = ImageChops.lighter(mask, offset_mask)
 
     return new_mask
+
+
+def process_mask(src_mask, target_mask, scale_ratio=1.0):
+    def read_mask(mask):
+        if isinstance(mask, (str, Path)):
+            return cv2.imread(str(mask), cv2.IMREAD_GRAYSCALE)
+        return mask
+
+    # 读取mask图像
+    src_mask_img = read_mask(src_mask)
+    target_mask_img = read_mask(target_mask)
+
+    # 确保图像大小相同
+    if src_mask_img.shape != target_mask_img.shape:
+        raise ValueError("Source and target masks must have the same dimensions.")
+
+    # 合并target_mask和target_mask_img, 要求相同的像素保留, 不同的像素取大值
+    combined_mask = np.maximum(src_mask_img, target_mask_img)
+
+    # 如果需要缩放比例，可以在此处应用缩放
+    if scale_ratio != 1.0:
+        new_size = (int(combined_mask.shape[1] * scale_ratio), int(combined_mask.shape[0] * scale_ratio))
+        combined_mask = cv2.resize(combined_mask, new_size, interpolation=cv2.INTER_NEAREST)
+
+    # 转为PIL图像
+    combined_mask = Image.fromarray(combined_mask)
+    return combined_mask
+
+
+def scale_mask(src_mask: Image, scale_factor=1.0):
+    """
+    缩放mask为灰度图，255的表示需要缩放的内容，按照scale_ratio将内容一起缩放。
+
+    :param src_mask: 输入的灰度掩码图像。
+    :param scale_ratio: 缩放比例，默认为1.0。
+    :return: 缩放后的灰度图像。
+    """
+    # 创建一个二值化图像，只保留白色物体
+    binary_image = src_mask.point(lambda p: p > 128 and 255)
+
+    # 获取白色物体的边界框
+    bbox = binary_image.getbbox()
+
+    if bbox:
+        # 裁剪出白色物体
+        white_object = src_mask.crop(bbox)
+
+        # 计算新的尺寸
+        new_size = (int(white_object.width * scale_factor), int(white_object.height * scale_factor))
+
+        # 缩放白色物体
+        scaled_object = white_object.resize(new_size, Image.LANCZOS)
+
+        # 创建一个新的空白图像
+        new_image = Image.new("L", src_mask.size, 0)
+
+        # 计算放置缩放后物体的位置
+        new_bbox = (bbox[0], bbox[1], bbox[0] + scaled_object.width, bbox[1] + scaled_object.height)
+
+        # 将缩放后的物体粘贴到新图像上
+        new_image.paste(scaled_object, new_bbox)
+        return new_image
+    else:
+        print("No white object found.")
+        return src_mask
+
+
+def create_blending_image(src_img: Image, target_img: Image, mask):
+    # 将target_img中mask的内容合并到src_img中,并返回结果
+    src_img = src_img.convert("RGBA")
+    target_img = target_img.convert("RGBA")
+    mask = mask.convert("L")
+    result = Image.composite(target_img, src_img, mask)
+    return result
 
 
 if __name__ == "__main__":

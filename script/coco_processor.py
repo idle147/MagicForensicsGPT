@@ -1,132 +1,234 @@
 import json
-from pathlib import Path
+import logging
 import random
 import shutil
+from pathlib import Path
+from typing import Union
+
+import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+import torch
+from PIL import Image
+from facenet_pytorch import MTCNN
 from pycocotools.coco import COCO
 from pycocotools import mask as maskUtils
-from PIL import Image
-import cv2
-
-# import dlib
-from facenet_pytorch import MTCNN
-import torch
 
 
-def detect_frontal_faces(image):
-    # Initialize MTCNN for face detection
-    mtcnn = MTCNN(keep_all=True, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+class FaceDetector:
+    """使用 MTCNN 进行人脸检测的类。"""
 
-    # Load the image
-    if isinstance(image, str) or isinstance(image, Path):
-        image = cv2.imread(image)
-        if image is None:
-            print("Could not read the image.")
-            return False
-        # Convert the image to RGB (MTCNN expects RGB images)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    else:
-        # Convert the image to RGB (MTCNN expects RGB images)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    def __init__(self, device: torch.device = None):
+        self.device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.mtcnn = MTCNN(keep_all=True, device=self.device)
 
-    # Convert the image to a PIL Image
-    image = Image.fromarray(image)
+    def detect_faces(self, image: Union[str, Path, np.ndarray]) -> bool:
+        """
+        检测输入图像中是否存在人脸。
 
-    # Detect faces
-    boxes, _ = mtcnn.detect(image)
+        Args:
+            image: 图像的路径或 numpy 数组。
 
-    # Check if any faces are detected
-    if boxes is not None and len(boxes) > 0:
-        return True
-    else:
-        return False
+        Returns:
+            bool: 是否检测到人脸。
+        """
+        if isinstance(image, (str, Path)):
+            image = cv2.imread(str(image))
+            if image is None:
+                logging.warning(f"无法读取图像：{image}")
+                return False
+        else:
+            # 拷贝图像以避免修改原始数据
+            image = image.copy()
+
+        # 确保图像为 RGB 格式
+        if image.ndim == 2:
+            # 灰度图像，转换为 RGB
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        elif image.shape[2] == 4:
+            # RGBA 转 RGB
+            image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+        else:
+            # BGR 转 RGB
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # 转换为 PIL 图像
+        pil_image = Image.fromarray(image)
+
+        # 检测人脸
+        boxes, _ = self.mtcnn.detect(pil_image)
+
+        return boxes is not None and len(boxes) > 0
 
 
-# Initialize COCO api for instance annotations
-data_dir = Path("/home/yuyangxin/data/dataset/MSCOCO")
-data_type = "train2017"
-ann_file = data_dir / "annotations" / f"instances_{data_type}.json"
-caption_file = data_dir / "annotations" / f"captions_{data_type}.json"
+class COCODataProcessor:
+    """处理 COCO 数据集的类。"""
 
-save_path = Path("/home/yuyangxin/data/experiment/examples")
-# 如果文件夹存在，则删除
-if save_path.exists() and save_path.is_dir():
-    shutil.rmtree(save_path)
+    def __init__(
+        self,
+        data_dir: Union[str, Path],
+        data_type: str,
+        save_path: Union[str, Path],
+        max_images: int = 500,
+        min_size: int = 64,
+        max_size: int = 128,
+        clear_existing: bool = False,
+    ):
+        self.data_dir = Path(data_dir)
+        self.data_type = data_type
+        self.save_path = Path(save_path)
+        self.max_images = max_images
+        self.min_size = min_size
+        self.max_size = max_size
+        self.count = 0
+        self.output_dict = {}
 
-target_mask_dir = save_path / "masks"
-target_img_dir = save_path / "images"
-save_path.mkdir(parents=True, exist_ok=True)
-target_mask_dir.mkdir(parents=True, exist_ok=True)
-target_img_dir.mkdir(parents=True, exist_ok=True)
+        # 初始化 COCO API
+        ann_file = self.data_dir / "annotations" / f"instances_{self.data_type}.json"
+        caption_file = self.data_dir / "annotations" / f"captions_{self.data_type}.json"
+        self.coco = COCO(ann_file)
+        self.coco_caps = COCO(caption_file)
 
-coco, coco_caps = COCO(ann_file), COCO(caption_file)
+        # 获取所有图像 ID 并打乱顺序
+        self.img_ids = self.coco.getImgIds()
+        random.shuffle(self.img_ids)
 
-# Get all image ids and sort them
-img_ids = coco.getImgIds()
-random.shuffle(img_ids)
+        # 初始化人脸检测器
+        self.face_detector = FaceDetector()
 
-# Dictionary to store image paths and corresponding segmentation info
-output_dict = {}
-count = 0
+        # 初始化保存路径
+        self.target_mask_dir = self.save_path / "masks"
+        self.target_img_dir = self.save_path / "images"
 
-max_value, min_value = 128, 32
+        # 准备目录
+        self._prepare_directories(clear_existing)
 
-for img_id in img_ids:
-    if count > 1000:
-        break
-    ann_ids = coco.getAnnIds(imgIds=img_id)
-    anns = coco.loadAnns(ann_ids)
-    # 打乱顺序
-    np.random.shuffle(anns)
+    def _prepare_directories(self, clear_existing: bool):
+        """准备保存目录。
 
-    # Load the image
-    img = coco.loadImgs(img_id)[0]
-    image_path = data_dir / data_type / img["file_name"]
-    if detect_frontal_faces(image_path) == True:
-        print(f"{image_path}: 发现人脸,跳过")
-        continue
+        如果 `clear_existing` 为 True，若存在则删除并新建；否则仅创建不存在的目录。
+        """
+        if clear_existing and self.save_path.exists():
+            shutil.rmtree(self.save_path)
+        self.target_mask_dir.mkdir(parents=True, exist_ok=True)
+        self.target_img_dir.mkdir(parents=True, exist_ok=True)
 
-    image = plt.imread(image_path)
-    # Get captions for the image
-    cap_ids = coco_caps.getAnnIds(imgIds=img_id)
-    caps = coco_caps.loadAnns(cap_ids)
-    captions = [cap["caption"] for cap in caps]
+    def process(self):
+        """处理图像并保存结果。"""
+        for img_id in self.img_ids:
+            if self.count >= self.max_images:
+                break
+            self._process_image(img_id)
 
-    for ann in anns:
-        if "bbox" in ann:
-            x, y, width, height = ann["bbox"]
+        # 保存结果为 JSON 文件
+        output_file = self.save_path / "result.json"
+        with output_file.open("w", encoding="utf-8") as f:
+            json.dump(self.output_dict, f, indent=4, ensure_ascii=False)
 
-            if min(width, height) >= min_value and max(width, height) <= max_value and "segmentation" in ann:
-                rle = maskUtils.frPyObjects(ann["segmentation"], img["height"], img["width"])
-                mask = maskUtils.decode(rle)
+    def _process_image(self, img_id: int):
+        """
+        处理单个图像。
 
-                # Ensure the mask is a 2D binary array
-                if mask.ndim == 3:
-                    mask = mask[:, :, 0]
+        Args:
+            img_id: 图像的 ID。
+        """
+        try:
+            ann_ids = self.coco.getAnnIds(imgIds=img_id)
+            anns = self.coco.loadAnns(ann_ids)
+            if not anns:
+                logging.warning(f"图像 {img_id} 无标注，跳过")
+                return
 
-                # Save the mask image
-                mask_image_path = target_mask_dir / f"mask_{image_path.name}"
+            # 打乱标注顺序
+            random.shuffle(anns)
+
+            # 加载图像信息
+            img_info = self.coco.loadImgs(img_id)[0]
+            image_path = self.data_dir / self.data_type / img_info["file_name"]
+
+            # 检测人脸，若存在则跳过
+            if self.face_detector.detect_faces(image_path):
+                logging.info(f"{image_path}: 发现人脸，跳过")
+                return
+
+            # 获取图像的标题
+            cap_ids = self.coco_caps.getAnnIds(imgIds=img_id)
+            caps = self.coco_caps.loadAnns(cap_ids)
+            captions = [cap["caption"] for cap in caps] if caps else []
+
+            for ann in anns:
+                bbox = ann.get("bbox")
+                segmentation = ann.get("segmentation")
+
+                if not bbox or not segmentation:
+                    continue
+
+                x, y, width, height = bbox
+
+                if not (self.min_size <= min(width, height) <= self.max_size):
+                    continue
+
+                mask = self._get_mask(ann, img_info)
+                if mask is None:
+                    continue
+
+                # 保存掩码图像
+                mask_image_path = self.target_mask_dir / f"mask_{img_info['file_name']}"
                 mask_image = Image.fromarray(mask.astype(np.uint8) * 255, mode="L")
                 mask_image.save(mask_image_path)
 
-                # Copy the real image
-                shutil.copy(image_path, target_img_dir / img["file_name"])
+                # 复制真实图像
+                target_img_path = self.target_img_dir / img_info["file_name"]
+                if not target_img_path.exists():
+                    shutil.copy(image_path, target_img_path)
 
-                # Add the image path and segmentation info to the dictionary
+                # 获取类别信息
                 category_id = ann["category_id"]
-                category_name = coco.loadCats(category_id)[0]["name"]
+                category_info = self.coco.loadCats([category_id])
+                category_name = category_info[0]["name"] if category_info else "unknown"
 
-                output_dict[str(image_path)] = {
+                # 添加到输出字典
+                self.output_dict[str(image_path)] = {
                     "mask_path": str(mask_image_path),
                     "category": category_name,
                     "ann": ann,
                     "captions": captions,
                 }
 
-                count += 1
-                break
+                self.count += 1
+                break  # 已处理一个合适的标注，跳出循环
 
-# 保存结果为Json内容
-with open("result.json", "w") as f:
-    json.dump(output_dict, f, indent=4)
+        except Exception as e:
+            logging.exception(f"处理图像 {img_id} 时出错: {e}")
+
+    def _get_mask(self, ann: dict, img_info: dict) -> Union[np.ndarray, None]:
+        """
+        从标注中获取掩码。
+
+        Args:
+            ann: 标注信息。
+            img_info: 图像信息。
+
+        Returns:
+            np.ndarray: 掩码数组，若失败则返回 None。
+        """
+        try:
+            rle = maskUtils.frPyObjects(ann["segmentation"], img_info["height"], img_info["width"])
+            mask = maskUtils.decode(rle)
+
+            # 确保掩码是二维的
+            if mask.ndim == 3:
+                mask = mask[:, :, 0]
+
+            return mask
+        except Exception as e:
+            logging.exception(f"获取掩码时出错: {e}")
+            return None
+
+
+if __name__ == "__main__":
+    data_dir = "/home/yuyangxin/data/dataset/MSCOCO"
+    data_type = "train2017"
+    save_path = "/home/yuyangxin/data/experiment/examples"
+
+    processor = COCODataProcessor(data_dir, data_type, save_path)  # 设置为 True 以清除已有数据
+    processor.process()
