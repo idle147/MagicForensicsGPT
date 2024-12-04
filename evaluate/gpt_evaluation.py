@@ -16,10 +16,11 @@ class GScoreEvaluation:
         self.score_desc = GScoreDescription(self.llm)
         self.image_processor = ImageProcessor()
 
-    def evaluate(self, src_path, edited_path):
+    def g_evaluate(self, src_path, edited_path, mask_path, edited_text_content):
         print(f"开始处理图片")
         src_img, _, scale_factor = self.image_processor.load_image(src_path)
         edited_img, _, scale_factor = self.image_processor.load_image(edited_path)
+        masked_img, _, _ = self.image_processor.load_image(mask_path)
         image_info = HumanMessage(
             content=[
                 {
@@ -38,6 +39,18 @@ class GScoreEvaluation:
                     "type": "image_url",
                     "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(edited_img)}"},
                 },
+                {
+                    "type": "text",
+                    "text": "The following image is a mask image.",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(masked_img)}"},
+                },
+                {
+                    "type": "text",
+                    "text": f"editing procedure: {edited_text_content}",
+                },
             ]
         )
         response = self.score_desc.run(image_info)
@@ -46,7 +59,7 @@ class GScoreEvaluation:
 
 if __name__ == "__main__":
     a = GScoreEvaluation()
-    a.evaluate(
+    a.g_evaluate(
         "/home/yuyangxin/data/experiment/examples/images/000000000673.jpg",
         "/home/yuyangxin/data/experiment/examples/content_dragging/images/000000000673.png",
     )

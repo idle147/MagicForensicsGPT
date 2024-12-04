@@ -1,8 +1,5 @@
-import base64
-from io import BytesIO
 from pathlib import Path
 from tkinter import Image
-from typing import List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 import numpy as np
@@ -12,42 +9,56 @@ from config import load_config
 from prompts import FindDiffDescription
 from PIL import Image, ImageDraw
 import numpy as np
-from langchain.globals import set_debug
-
-# 启用调试模式
-set_debug(True)
 
 
 class GeiDiff:
     def __init__(self):
         self.image_processor = ImageProcessor()
-
         self.llm = ChatOpenAI(**load_config(), timeout=300)
         self.diff_prompt = FindDiffDescription(self.llm)
 
-    def run(self, src_image_path: Path, target_image_path: Path, src_mask, ref_mask):
-        src_image, _, scale_ratio = self.image_processor.load_image(src_image_path)
-        target_image, _, _ = self.image_processor.load_image(target_image_path)
-        mask = self.image_processor.process_mask(src_mask, ref_mask, scale_ratio)
+    def run(self, src_image_path: Path, edited_image_path: Path, src_mask, ref_mask, edited_text_content):
+        src_img, _, scale_ratio = self.image_processor.load_image(src_image_path)
+        edited_img, _, _ = self.image_processor.load_image(edited_image_path)
+        mask_img = self.image_processor.process_mask(src_mask, ref_mask, scale_ratio)
 
         image_info = HumanMessage(
             content=[
                 {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(src_image)}"},
+                    "type": "text",
+                    "text": "The following image is a real image.",
                 },
                 {
                     "type": "image_url",
-                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(target_image)}"},
+                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(src_img)}"},
+                },
+                {
+                    "type": "text",
+                    "text": "The following image is a edited image.",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(edited_img)}"},
+                },
+                {
+                    "type": "text",
+                    "text": "The following image is a mask image.",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(mask_img)}"},
+                },
+                {
+                    "type": "text",
+                    "text": f"editing procedure: {edited_text_content}",
                 },
             ]
         )
 
         diff_info = self.diff_prompt.run(image_info)
-        self.add_transparent_mask(target_image, diff_info.extract_polygons())
         print(diff_info)
         print(src_image_path)
-        print(target_image_path)
+        print(edited_image_path)
 
     def add_transparent_mask(self, target_image: Image, points, output_image_path: str = "./tmp.png"):
         """
