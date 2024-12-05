@@ -1,3 +1,4 @@
+import time
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from .base_prompt import BasePrompt
@@ -21,5 +22,11 @@ class GScoreDescription(BasePrompt):
 
     def run(self, image_data) -> ScoreModel:
         input_info = {"image_data": [image_data]}
-        response: ScoreModel = self.chain.invoke(input_info)
-        return response
+        for _ in range(3):
+            try:
+                response: ScoreModel = self.chain.invoke(input_info)
+                return response
+            except Exception as e:
+                time.sleep(1)
+                continue
+        return None
