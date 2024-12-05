@@ -21,7 +21,7 @@ class EntranceApp:
         self.llm = ChatOpenAI(**load_config(), timeout=300)
         self.full_desc = FullDescription(self.llm)
         self.modify_desc = ModifyDesc(self.llm)
-        self.modify_types = [ModifyType.OBJECT_MOVING, ModifyType.OBJECT_RESIZING, ModifyType.CONTENT_DRAGGING]
+        self.modify_types = ModifyType.get_modify()
 
         self.modify_mask_path: dict[str, Path] = {}
         for modify_type in self.modify_types:
@@ -56,8 +56,16 @@ class EntranceApp:
         image_info = HumanMessage(
             content=[
                 {
+                    "type": "text",
+                    "text": "The following image is a original image",
+                },
+                {
                     "type": "image_url",
                     "image_url": {"url": f"data:image/webp;base64,{self.image_processor.get_webp_base64(trans_img)}"},
+                },
+                {
+                    "type": "text",
+                    "text": "The following image is a mask image",
                 },
                 {
                     "type": "image_url",
@@ -83,7 +91,7 @@ class EntranceApp:
         # 根据描述修改图像信息
         for modify_type in self.modify_types:
             name = modify_type.value
-            if DEBUG or result.get(name) is None:
+            if result.get(name) is None:
                 result[name] = self.do_modify(
                     image_path, detail_info, result["origin"]["mask_object"], segmentation, image_info, scale_factor, src_mask, modify_type
                 )
@@ -141,7 +149,7 @@ if __name__ == "__main__":
     TARGET_PATH = Path("./examples")
     MODIFY_PATH = TARGET_PATH
     MODIFY_PATH.mkdir(parents=True, exist_ok=True)
-    DEBUG = False
+    DEBUG = True
 
     app = EntranceApp()
     with open("/home/yuyangxin/data/experiment/result.json", "r", encoding="utf-8") as file:

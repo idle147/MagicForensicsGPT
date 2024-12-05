@@ -9,6 +9,9 @@ class BasePrompt(ABC):
         # Load the prompt template from the file
         with open(self.prompt_path, "r") as f:
             system_msg = f.read()
+            sections = system_msg.split("###")
+            system_msg = sections[-1]
+
         self.system_msg = system_msg
         self.llm = llm
         if pydantic_object:
@@ -17,7 +20,8 @@ class BasePrompt(ABC):
             self.chain = self.template | self.llm | self.parser
         else:
             self.template = self.load_template()
-            self.chain = self.template | self.llm
+            if self.template:
+                self.chain = self.template | self.llm
 
     @abstractmethod
     def load_template(self, output_parser: PydanticOutputParser = None):

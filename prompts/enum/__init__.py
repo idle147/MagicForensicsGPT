@@ -15,3 +15,8 @@ class ModifyType(Enum):
     def choices(cls):
         info = [member.value for member in cls]
         return ",".join(info)
+
+    @classmethod
+    def get_modify(cls):
+        info = [member for member in cls]
+        return info

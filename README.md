@@ -24,3 +24,8 @@
 * What is the type of forgery in the image?
 * Where is the location of the forged area?
 * Can you provide an analysis of the image regarding possible forgeries?
+
+# 编辑器内容
+* 内容添加：Imagen Editor
+* 内容消除：lama（Resolution-robust Large Mask Inpainting with Fourier Convolutions）
+* XXX XXX
