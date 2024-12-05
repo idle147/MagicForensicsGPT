@@ -85,16 +85,28 @@ class EntranceApp:
             full_description_res = self.full_desc.run(image_info, segmentation, detail_info["captions"])
             desc_info = full_description_res.model_dump()
             mask_info = desc_info.pop("mask_object_info")
-            # 保存结果
-            result["origin"] = {"image": image_path.as_posix(), "mask": mask_path.as_posix(), "desc": desc_info, "mask_object": mask_info}
+            result["origin"] = {
+                "image": image_path.as_posix(),
+                "mask": mask_path.as_posix(),
+                "desc": desc_info,
+                "mask_object": mask_info,
+            }
 
         # 根据描述修改图像信息
         for modify_type in self.modify_types:
             name = modify_type.value
             if result.get(name) is None:
-                result[name] = self.do_modify(
-                    image_path, detail_info, result["origin"]["mask_object"], segmentation, image_info, scale_factor, src_mask, modify_type
+                content = self.do_modify(
+                    image_path,
+                    detail_info,
+                    result["origin"]["mask_object"],
+                    segmentation,
+                    image_info,
+                    scale_factor,
+                    src_mask,
+                    modify_type,
                 )
+                result[name] = content
 
         self.save_json(save_path, result)
         return result
@@ -109,7 +121,6 @@ class EntranceApp:
             "segmentation_position": segmentation,
             "start_point": utils.get_scaled_coordinates(start_point, scale_factor),
         }
-
         modify_detail = self.modify_desc.run(image_info, target_object, modify_type)
 
         # 缩放像素点
@@ -149,8 +160,9 @@ if __name__ == "__main__":
     TARGET_PATH = Path("./examples")
     MODIFY_PATH = TARGET_PATH
     MODIFY_PATH.mkdir(parents=True, exist_ok=True)
-    DEBUG = True
+    DEBUG = False
 
+    print(f"DEBUG模式: {DEBUG}")
     app = EntranceApp()
     with open("/home/yuyangxin/data/experiment/result.json", "r", encoding="utf-8") as file:
         image_info = json.load(file)
@@ -177,7 +189,8 @@ if __name__ == "__main__":
                     info = traceback.format_exc()
                     if "错误" in info:
                         info = "现实中不存在该图片!"
-                    print(f"Error processing {image_path}: {info}")
+                    print(f"Error processing {image_path}")
+                    print(info) if DEBUG else print(e)
                     error_info.append({"image_path": image_path, "error_info": info})
 
     # 保存错误信息
