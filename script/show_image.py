@@ -15,7 +15,7 @@ from processor.utils import process_mask, create_blending_image, compare_differe
 
 # 定义主应用程序类
 class ImageSelectorApp:
-    def __init__(self, master, img_dir):
+    def __init__(self, master, img_dir, option_method="content_dragging"):
         self.master = master
         self.master.title("图片选择器")
         self.master.geometry("1200x800")  # 设置初始窗口大小
@@ -25,7 +25,7 @@ class ImageSelectorApp:
         self.img_dir: Path = Path(img_dir)
 
         # 设置修改类型
-        self.option_method = "content_dragging"
+        self.option_method = option_method
         self.img_info = self.get_img_info()
 
         # 存储用户接受的图片路径
@@ -280,5 +280,5 @@ if __name__ == "__main__":
 
     # 创建主窗口
     root = tk.Tk()
-    app = ImageSelectorApp(root, "./examples")
+    app = ImageSelectorApp(root, "./examples", "removing_object")
     root.mainloop()
