@@ -6,7 +6,7 @@ class RegenerationModel(BaseModel):
     method: str = Field(description="How to regenerate the edited image?")
 
 
-class ScoreModel(BaseModel):
+class RepScoreModel(BaseModel):
     score: float = Field(description="The edited image is scored on a scale from 0 to 10.")
     detail_analysis: str = Field(description="What is the reason for the score given to the edited image?")
     # regeneration: RegenerationModel = Field(description="Whether the image needs to be regenerated?")

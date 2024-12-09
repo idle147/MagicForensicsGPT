@@ -1,0 +1,140 @@
+任务设定
+根据提供的真实图像，分析其视觉和语义特征，给出真实图像依据，并输出一份详细的取证分析报告。
+
+输出要求
+格式规范：报告应按章节结构组织，使用清晰的标题和副标题，按照以下分析要求的顺序呈现。可以使用列表或段落形式来突出关键点。
+语言风格：采用专业、客观的描述方式，不使用主观评价或情感化的语言。
+充分全面：全面评估语义、视觉和像素特征，确保分析深入细致。
+自我检查：确保答案符合要求，必要时自行修改。
+避免特定术语：不使用“MASK”等相关术语，但可以用其他方式描述编辑区域的位置和范围。
+
+分析要求
+一、图像内容分析
+利用自然语言的指称表达描述全图图片的内容
+位置描述
+相对位置：例如:图像中央有一棵大树，树旁左侧有一张长椅，右侧有一条小径延伸至远处。
+绝对位置：例如:长椅位于图像的左下角，大树位于中央偏左位置，小径从右下角延伸至图像的远景。
+
+内容描述
+对象类型，例如：大树、长椅、小径、远处的建筑物。
+数量，例如：一棵大树、一张长椅、一条小径、两座建筑物。
+动作或姿势，例如：树枝自然下垂，长椅静止放置，小径笔直延伸。
+属性和特征，例如：大树叶子茂密，颜色为绿色；长椅为木质，颜色棕色；小径由鹅卵石铺成，排列整齐。
+自然度评价，例如：所有元素均符合自然场景，无明显不协调之处。
+
+二、图像的语义层面分析
+多模态信息一致性:图像中的文字与视觉内容一致，无逻辑矛盾。
+文本内容一致性:图像中无明显文本内容，或文本与背景主题一致。
+格式和版式规范性:图像构图合理，元素排列符合常规视觉规范。
+视觉一致性:色调统一，整体视觉和谐，无明显突兀元素。
+时空一致性:季节、天气与场景匹配，如夏季绿树成荫，天空晴朗。
+元数据分析:EXIF信息显示图像由高质量相机拍摄，日期时间与场景一致。
+文化和标识一致性:图像中的符号和文化元素符合所在地域背景。
+其他语义一致性:图像内容符合常理，无明显语义异常。
+
+三、图像的视觉层面分析
+物理特征验证:各物体比例合理，长椅与树的大小协调，小径延伸方向自然。
+光照分布自然性:光源方向一致，阴影长度和方向合理，光影过渡自然。
+透视和角度一致性:所有物体的透视关系一致，视角统一，无失真现象。
+色彩统一性:白平衡正确，色彩过渡自然，整体色调和谐。
+纹理特征分析:树叶、木质长椅和鹅卵石纹理清晰，连续性良好。
+反射和折射一致性:无明显反射或折射效果，或反射效果符合实际光源位置。
+边缘清晰度:图像边缘清晰，无模糊或断裂现象。
+模糊和焦点:前景物体清晰，背景适度虚化，景深效果自然。
+运动模糊和动态迹象:图像静态，无运动模糊或动态迹象。
+其他视觉一致性:无其他视觉上的不一致，整体视觉效果协调。
+
+四、图像的像素层面分析
+噪声分布检测:图像各区域噪声水平一致，无异常噪点。
+水印内容检测:图像无水印或水印位置固定，无移除或覆盖痕迹。
+压缩痕迹识别:图像压缩质量高，无明显压缩块效应。
+频域特征分析:频域特征均匀，无异常频率成分。
+颜色空间分析:RGB和HSV颜色空间下颜色过渡自然，无异常色差。
+像素级连续性:像素值连续，无明显突变或异常变化。
+误差水平分析（ELA）:ELA结果显示图像各区域一致，无异常压缩残留。
+隐写和数据嵌入检测:无隐藏信息或数据嵌入的迹象。
+EXIF和文件属性:文件属性与图像内容一致，拍摄设备和地理位置信息合理。
+其他像素级别的一致性:图像整体质量高，无其他像素级别的异常。
+
+五、取证困难程度的定级标准
+容易：图像特征明显，符合常规真实场景，人眼和常规取证工具均可准确判断其真实性。
+普通：图像特征复杂，但通过详细分析可确认其真实性，如色彩一致、光影自然。
+困难：图像质量高，即使经过高级技术分析，确认其真实性也需谨慎，需依赖高级技术手段。
+无法判断：缺乏足够的信息或技术手段无法全面确认图像的真实性，需更多信息支持。
+
+六、总结
+综合分析: 图像内外的各项特征均显示出高度一致性和真实性，整体视觉效果自然和谐。
+归纳特征：色彩统一、光影自然、比例合理、元数据一致等特征支持图像的真实性。
+定级理由：图像特征清晰、一致，取证困难程度为“容易”，因其符合常规真实场景特征。
+自我检查：在完成报告后，进行自我检查，确保所有分析内容符合上述要求，格式规范，描述客观，分析全面。
+
+#########
+Task Setting
+
+Analyze the visual and semantic features of the provided real images, provide evidence-based reasoning for the authenticity of the real images, and produce a detailed forensic analysis report.
+
+Output Requirements
+
+Format Specifications: The report should be organized by chapters, using clear titles and subtitles, and presented in the following order according to the analysis requirements. Key points can be highlighted using lists or paragraphs.
+
+Language Style: Use a professional and objective descriptive manner without subjective evaluations or emotional language.
+
+Comprehensive and Thorough: Fully assess semantic, visual, and pixel-level features to ensure an in-depth and meticulous analysis.
+
+Self-Check: Ensure that the response meets all requirements and make necessary revisions if needed.
+
+Avoid Specific Terminology: Do not use terms like "MASK" or related terminology, but describe the location and extent of edited areas using alternative expressions.
+
+Analysis Requirements
+
+1. Image Content Analysis
+Position Description
+Relative Position: There is a large tree in the center of the image, with a bench on the left side of the tree and a path extending to the distance on the right side.
+Absolute Position: The bench is located in the lower left corner of the image, the large tree is positioned slightly to the left of the center, and the path extends from the lower right corner to the distant background of the image.
+Content Description
+Object Types: For example, a large tree, a bench, a path, buildings in the distance.
+Quantity: For example, one large tree, one bench, one path, two buildings.
+Actions or Poses: For example, tree branches naturally drooping, the bench placed stationary, the path extending straight forward.
+Attributes and Features: For example, the large tree has dense green leaves; the bench is wooden and brown in color; the path is paved with neatly arranged cobblestones.
+Naturalness Evaluation: All elements conform to a natural scene with no obvious inconsistencies.
+2. Semantic Level Analysis
+Multimodal Information Consistency: The text within the image is consistent with the visual content, with no logical contradictions.
+Text Content Consistency: There is no obvious text content in the image, or the text aligns with the background theme.
+Format and Layout Norms: The image composition is reasonable, and the arrangement of elements follows conventional visual standards.
+Visual Consistency: The color tones are unified, the overall visual harmony is maintained, and there are no conspicuous out-of-place elements.
+Spatiotemporal Consistency: The season and weather match the scene, such as lush green trees in summer and a clear sky.
+Metadata Analysis: EXIF information indicates the image was taken with a high-quality camera, and the date and time are consistent with the scene.
+Cultural and Symbolic Consistency: The symbols and cultural elements in the image match the regional background.
+Other Semantic Consistencies: The content of the image is logical with no apparent semantic anomalies.
+3. Visual Level Analysis
+Physical Feature Verification: The proportions of each object are reasonable, the size of the bench and tree are harmonious, and the direction of the path extension is natural.
+Natural Lighting Distribution: The direction of the light source is consistent, the length and direction of shadows are reasonable, and the transition of light and shadow is natural.
+Perspective and Angle Consistency: The perspective relationships of all objects are consistent, the viewpoint is unified, and there is no distortion.
+Color Uniformity: The white balance is correct, color transitions are natural, and the overall color tone is harmonious.
+Texture Feature Analysis: The textures of the tree leaves, wooden bench, and cobblestone path are clear and well-continuous.
+Reflection and Refraction Consistency: There are no obvious reflection or refraction effects, or the reflection effects align with the actual light source position.
+Edge Clarity: The edges in the image are clear, with no blurring or breakage.
+Blur and Focus: Foreground objects are clear, the background is appropriately blurred, and the depth of field effect is natural.
+Motion Blur and Dynamic Signs: The image is static with no motion blur or dynamic signs.
+Other Visual Consistencies: There are no other visual inconsistencies, and the overall visual effect is coordinated.
+4. Pixel Level Analysis
+Noise Distribution Detection: Noise levels are consistent across all regions of the image, with no abnormal noise spots.
+Watermark Content Detection: There are no watermarks in the image, or the watermark position is fixed without signs of removal or covering.
+Compression Artifact Recognition: The image compression quality is high, with no obvious compression block effects.
+Frequency Domain Feature Analysis: Frequency domain features are uniform with no abnormal frequency components.
+Color Space Analysis: In both RGB and HSV color spaces, color transitions are natural with no abnormal color differences.
+Pixel-Level Continuity: Pixel values are continuous with no obvious abrupt changes or anomalies.
+Error Level Analysis (ELA): ELA results show consistency across all regions of the image with no abnormal compression residues.
+Steganography and Data Embedding Detection: There are no signs of hidden information or data embedding.
+EXIF and File Attributes: File attributes are consistent with the image content, and the camera and geographical location information are reasonable.
+Other Pixel-Level Consistencies: The overall image quality is high with no other pixel-level anomalies.
+5. Forensic Difficulty Level Standards
+Easy: Image features are obvious, conform to conventional real scenes, and both the human eye and standard forensic tools can accurately determine authenticity.
+Ordinary: Image features are complex, but authenticity can be confirmed through detailed analysis, such as consistent colors and natural lighting.
+Difficult: The image quality is high, and even with advanced technical analysis, confirming authenticity requires caution and reliance on advanced technical methods.
+Unable to Determine: There is insufficient information or technical means to fully confirm the authenticity of the image, requiring more information support.
+6. Summary
+Comprehensive Analysis: All internal and external features of the image demonstrate high consistency and authenticity, with the overall visual effect being natural and harmonious.
+Inductive Features: Features such as color uniformity, natural lighting and shadows, reasonable proportions, and consistent metadata support the authenticity of the image.
+Grading Reason: The image features are clear and consistent, with the forensic difficulty level rated as "Easy" because they align with conventional real scene characteristics.
+Self-Check: After completing the report, perform a self-check to ensure all analysis content meets the above requirements, the format is standardized, the descriptions are objective, and the analysis is comprehensive.

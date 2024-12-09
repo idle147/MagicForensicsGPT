@@ -2,13 +2,13 @@ import time
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from .base_prompt import BasePrompt
-from .model import ScoreModel
+from .model import RepScoreModel
 
 
 class GScoreDescription(BasePrompt):
     def __init__(self, llm):
         prompt_path = "./prompts/g_score.txt"
-        super().__init__(llm, prompt_path, ScoreModel)
+        super().__init__(llm, prompt_path, RepScoreModel)
 
     def load_template(self, output_parser: PydanticOutputParser = None):
         placeholders = [
@@ -20,11 +20,11 @@ class GScoreDescription(BasePrompt):
         chat_template = ChatPromptTemplate(placeholders, partial_variables=partial_vars)
         return chat_template
 
-    def run(self, image_data) -> ScoreModel:
+    def run(self, image_data) -> RepScoreModel:
         input_info = {"image_data": [image_data]}
         for _ in range(3):
             try:
-                response: ScoreModel = self.chain.invoke(input_info)
+                response: RepScoreModel = self.chain.invoke(input_info)
                 return response
             except Exception as e:
                 time.sleep(1)

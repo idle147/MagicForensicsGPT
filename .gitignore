@@ -6,3 +6,4 @@ examples/*
 /test
 error_path.json
 result.json
+document_example/*

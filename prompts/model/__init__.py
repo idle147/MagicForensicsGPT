@@ -4,4 +4,5 @@ from .object_moving import RepMovingModel
 from .object_resizing import RepResizingModel
 from .object_removing import RepReMovingModel
 from .content_dragging import ContentDragModel
-from .score import ScoreModel
+from .score import RepScoreModel
+from .forensics_accessibility import RepForensicsAccessModel, RepSaveForensicsAccessModel

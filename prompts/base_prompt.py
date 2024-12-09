@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import asyncio
 from langchain.output_parsers import PydanticOutputParser
 
 
@@ -30,3 +31,14 @@ class BasePrompt(ABC):
     @abstractmethod
     def run(self, image_info, captions, *args, **kwargs):
         pass
+
+    def run_with_timeout(self, timeout_seconds=10):
+        async def run_chain_with_timeout():
+            try:
+                # 使用 asyncio.wait_for 来设置超时时间
+                result = await asyncio.wait_for(self.chain.invoke(), timeout=timeout_seconds)
+                print(result)
+            except asyncio.TimeoutError:
+                print("The operation timed out")
+
+        asyncio.run(run_chain_with_timeout())
