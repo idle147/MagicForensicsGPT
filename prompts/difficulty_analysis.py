@@ -3,6 +3,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from .base_prompt import BasePrompt
 from .model import RepForensicsAccessModel, RepSaveForensicsAccessModel
+from langchain.globals import set_verbose
 
 
 class DifficultyAnalysisDescription(BasePrompt):
@@ -19,7 +20,11 @@ class DifficultyAnalysisDescription(BasePrompt):
         return ChatPromptTemplate(placeholders, partial_variables=partial_vars)
 
     def run(self, image_data) -> RepSaveForensicsAccessModel:
-        input_info = {"image_data": [image_data]}
+        if isinstance(image_data, list):
+            input_info = {"image_data": image_data}
+        else:
+            input_info = {"image_data": [image_data]}
+
         rep_model = self.chain.invoke(input_info)
         return RepSaveForensicsAccessModel(**rep_model.dict())
 
