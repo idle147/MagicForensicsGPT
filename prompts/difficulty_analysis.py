@@ -2,7 +2,7 @@ import time
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from .base_prompt import BasePrompt
-from .model import RepForensicsAccessModel, RepSaveForensicsAccessModel
+from .model import RepForensicsAccessModel
 from langchain.globals import set_verbose
 
 
@@ -19,14 +19,17 @@ class DifficultyAnalysisDescription(BasePrompt):
         partial_vars = {"format_instructions": output_parser.get_format_instructions() if output_parser else None}
         return ChatPromptTemplate(placeholders, partial_variables=partial_vars)
 
-    def run(self, image_data) -> RepSaveForensicsAccessModel:
+    def run(self, image_data):
         if isinstance(image_data, list):
             input_info = {"image_data": image_data}
         else:
             input_info = {"image_data": [image_data]}
 
-        rep_model = self.chain.invoke(input_info)
-        return RepSaveForensicsAccessModel(**rep_model.dict())
+        try:
+            rep_model: RepForensicsAccessModel = self.chain.invoke(input_info)
+        except Exception as e:
+            return str(e)
+        return rep_model.model_dump()
 
 
 class FakeImageDifficultyAnalysisDescription(DifficultyAnalysisDescription):
@@ -39,6 +42,6 @@ class RealImageDifficultyAnalysisDescription(DifficultyAnalysisDescription):
         super().__init__(llm, "./prompts/difficulty_analysis_real.txt")
 
 
-class NoMaskDifficultyAnalysisDescription(DifficultyAnalysisDescription):
+class NoRefDifficultyAnalysisDescription(DifficultyAnalysisDescription):
     def __init__(self, llm):
         super().__init__(llm, "./prompts/difficulty_analysis.txt")

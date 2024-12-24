@@ -64,3 +64,73 @@ EXIF和文件属性：核实文件创建日期、修改日期、摄像设备型�
 归纳手法：归纳主要的真实性特征，解释这些特征如何支持您的判断。
 定级理由：给出真实性可靠性定级的理由，阐述可信程度及影响因素。
 建议：基于当前的分析结果，提出进一步的调查建议，或需要关注的重点领域。
+
+######
+Task Setting: You will receive an image of unknown authenticity. Based on the image and the following requirements, analyze whether the image has been edited, identify edited areas, and produce a detailed image authenticity analysis report.
+
+Output Requirements:
+
+Chain of Thought: Before generating the final report, conduct step-by-step analysis and reasoning, ensuring each analysis step has clear logic and basis.
+Format Specification: The report should be organized in a chapter structure, using clear titles and subtitles, presented in the order of the analysis requirements below. Key points can be highlighted using lists or paragraphs.
+Language Style: Use a professional, objective description style, avoiding subjective evaluations or emotional language.
+Thoroughness: Conduct a comprehensive assessment of semantic, visual, and pixel characteristics to ensure in-depth analysis.
+Self-Check: Ensure the answer meets the requirements, and modify it if necessary.
+Avoid Specific Terms: Do not use terms like "forgery" or "edited area"; describe the image's details and features in other ways.
+Analysis Requirements:
+
+Image Content Description
+
+Overall Image Description: Describe the overall semantic information presented by the image.
+Image Classification Description: Determine the specific type of image, down to the category (e.g., document image, chat record image, official document image, natural scenery, portrait photography, commercial advertisement, etc.).
+Image Authenticity Feature Description:
+Object Type: Describe in detail the types of objects or components in the image.
+Quantity: Indicate the number of each object in the image.
+Actions or Poses: Describe the actions, poses, or states of the objects.
+Attributes and Features: Include features such as size, color, texture, orientation, material, shadow, etc.
+Naturalness Evaluation: Assess the naturalness of the image content, noting any anomalies that make it stand out from surrounding areas.
+Semantic Level Analysis
+
+Multimodal Information Consistency: Check if the text and symbols in the image are consistent with the visual content and if there is logical coherence.
+Text Content Consistency: Evaluate the logical coherence of any text in the image, ensuring it matches the expected theme and background.
+Format and Layout Norms: Check if the image conforms to standard templates, including paragraph structure, title styles, etc.
+Content Logic: Confirm the reasonable relationship of elements in time and space, such as matching seasons, weather, and scenes.
+Metadata Analysis: Check the image's EXIF information, including camera model, shooting date and time, geographic location, etc., to ensure consistency with the image content.
+Cultural and Symbol Consistency: Verify that symbols, language, and cultural elements in the image match the background setting.
+Other Semantic Consistency: Confirm that the image content is semantically coherent and without anomalies.
+Visual Level Analysis
+
+Physical Feature Verification: Detect if the proportions, sizes, and relative positions of objects in the scene are reasonable, noting any abnormal collisions or deformations.
+Lighting Distribution Naturalness: Check the naturalness of lighting effects, including light source direction, shadow length, and brightness distribution.
+Perspective and Angle Consistency: Ensure all objects have consistent perspective relationships and viewing angles, avoiding distortion or mismatch.
+Color Uniformity: Check the consistency of white balance and overall tone, ensuring natural color transitions.
+Texture Feature Analysis: Ensure textures match real situations, paying attention to texture continuity and repetition patterns.
+Reflection and Refraction Consistency: Check the correctness of mirror reflections, water reflections, and transmission effects.
+Edge Naturalness Detection: Confirm that image edges are natural, without obvious artifacts or processing traces.
+Clarity and Focus: Evaluate the depth of field effect, checking if the clarity of the foreground and background is reasonable.
+Motion Blur and Dynamic Signs: Determine if moving elements in the image have consistent blur effects.
+Other Visual Consistency: Confirm there are no anomalies at the visual level.
+Pixel Level Analysis
+
+Noise Distribution Detection: Analyze the noise pattern in various regions of the image, ensuring consistent noise levels.
+Watermark Content Detection: Check the integrity and position of watermark information, ensuring it exists and has not been tampered with.
+Compression Artifact Recognition: Determine if the image has undergone consistent compression, analyzing the uniformity of JPEG compression block effects.
+Frequency Domain Feature Analysis: Use methods like Fourier transform to detect the normalcy of image frequency domain features.
+Color Space Analysis: Compare color transitions in RGB, HSV, etc., to ensure natural transitions.
+Pixel-Level Consistency: Detect smooth transitions of pixel values, ensuring no abrupt or abnormal changes.
+Error Level Analysis (ELA): Confirm the uniformity of compression residues through error level analysis.
+Steganography and Data Embedding Detection: Check for signs of hidden information or data embedding, ensuring the image has not been tampered with.
+EXIF and File Attributes: Verify file creation date, modification date, camera model, geographic location, etc., to ensure consistency with the image content.
+Other Pixel-Level Consistency: Confirm there are no anomalies at the pixel level.
+Authenticity Evaluation
+
+Based on the analysis results, determine the final forgery characteristics and the difficulty level of forensic analysis, grading the image's forensic capability and describing the reasons. The grading content is as follows:
+Easy: Obvious forgery features, such as rough cut-and-paste, obvious splicing marks, can be accurately judged by the naked eye and conventional forensic tools.
+Normal: Complex forgery traces, but identifiable through detailed analysis, such as color differences, inconsistent lighting.
+Difficult: Fine forgery, even after advanced technical analysis, forgery traces are difficult to detect, requiring advanced technical means.
+Undetectable: Insufficient information or technical means to determine authenticity, extremely hidden forgery traces, or more information is needed.
+
+Summary
+Comprehensive Analysis: Explain in detail the authenticity performance of each feature of the image, compared to the expected real image.
+Inductive Method: Summarize the main authenticity features, explaining how these features support your judgment.
+Grading Reason: Provide reasons for the reliability grading of authenticity, explaining the degree of trust and influencing factors.
+Suggestions: Based on the current analysis results, propose further investigation suggestions or key areas to focus on.

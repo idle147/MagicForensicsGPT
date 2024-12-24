@@ -66,3 +66,88 @@ EXIF和文件属性：核实文件创建日期、修改日期、拍摄设备型�
 归纳手法：归纳主要的伪造手法，解释这些迹象如何支持您的判断。
 定级理由：给出取证困难程度定级的理由，阐述取证难易程度及可能影响判定的因素。
 建议：基于当前的分析结果，提出进一步的调查建议，或需要关注的重点领域。
+
+######
+Task Description: You will receive a fake image and a MASK image showing the edited areas. Using these two images and the requirements below, analyze the differences between the fake (edited) areas and the real areas. Then, create a detailed report analyzing the fake content.
+
+Output Requirements:
+
+Chain of Thought:
+
+Before writing the final report, perform step-by-step analysis and reasoning.
+Make sure each step has clear logic and evidence.
+Format:
+
+Organize the report into sections with clear titles and subtitles.
+Follow the order of the analysis requirements below.
+Use lists or paragraphs to highlight key points.
+Language Style:
+Use professional and objective language.
+Do not use subjective opinions or emotional words.
+Comprehensive:
+Thoroughly evaluate the meaning, visuals, and pixel details.
+Ensure the analysis is deep and detailed.
+Self-Check:
+Make sure the answer meets all requirements.
+Modify if necessary.
+Avoid Specific Terms:
+Do not use terms like "MASK."
+Describe the location and size of edited areas in other ways.
+Analysis Requirements:
+1. Image Content Description
+Full Image Description: Describe the overall meaning and information shown in the image.
+Image Classification: Specify the type of image, such as a receipt document, chat record, official document, etc.
+Fake Content Description:
+Object Type: Describe the types of objects or parts in the edited areas using clear references.
+Quantity: Indicate the number of edited objects, if applicable.
+Action or Pose: Describe the actions, poses, or states of the objects.
+Attributes and Features: Include details like size, color, texture, direction, material, shadows, etc.
+Naturalness Evaluation: Assess if the edited content looks natural and if there are any anomalies that make it stand out from the surrounding areas.
+
+2. Semantic Analysis Inside and Outside Edited Areas
+Consistency of Multimodal Information: Check if the text, symbols, and visuals in the image match and if there are any logical contradictions.
+Text Content Consistency: Evaluate if any text in the image is logically coherent and fits the expected theme and background.
+Format and Layout Standards: Check if the image follows standard templates, including paragraph structure and title styles.
+Visual Forgery Traces: Identify inconsistent edges, obvious modifications, or deletions. Look for signs of cloning or stitching.
+Misleading Content: Look for content that goes against common sense, physical laws, or is misleading.
+Temporal and Spatial Consistency: Verify if the time and space relationships of elements in the image make sense, such as matching seasons, weather, and scenes.
+Metadata Analysis: Check the image’s EXIF information, including camera model, shooting date and time, and location. Look for inconsistencies or signs of tampering.
+Cultural and Symbol Consistency: Verify if the symbols, language, and cultural elements in the image match the background setting.
+Other Semantic Anomalies: Identify any other unusual meanings or inconsistencies.
+
+3. Visual Analysis Inside and Outside Edited Areas
+Physical Features Verification: Check if the sizes, proportions, and positions of objects in the scene are reasonable. Look for unusual overlaps or distortions.
+Natural Lighting Distribution: Examine if the lighting and shadow look natural, including the direction of light sources and shadow lengths.
+Perspective and Angle Consistency: Ensure all objects have consistent perspectives and angles, avoiding distortions or mismatches.
+Color Uniformity: Identify color differences caused by forgery. Check white balance and overall color tones for consistency.
+Texture Feature Analysis: Make sure textures match the real situation. Look for continuous and repeating patterns.
+Reflection and Refraction Consistency: Check if reflections on surfaces like mirrors or water are correct.
+Edge Artifacts Detection: Look for soft or hard edges caused by cutting, copying, and pasting.
+Blur and Focus: Assess the depth of field and check if the clarity of foreground and background is reasonable.
+Motion Blur and Dynamic Signs: Determine if moving elements in the image have consistent blur effects.
+Other Visual Anomalies: Identify any other unusual visual details.
+
+4. Pixel-Level Analysis Inside and Outside Edited Areas
+Noise Distribution Detection: Analyze noise patterns in different areas to find artificially added noise or inconsistent noise levels.
+Watermark Content Detection: Check the integrity and position of watermarks. Look for signs of removal or covering.
+Compression Trace Identification: Determine if the image has been compressed differently in areas. Analyze differences in JPEG compression artifacts.
+Frequency Domain Feature Analysis: Use methods like Fourier transform to detect unusual frequency components and identify differences in fake areas.
+Color Space Analysis: Compare differences in color spaces like RGB and HSV. Look for unnatural color transitions.
+Pixel-Level Discontinuity: Detect sudden changes or unusual pixel value shifts, such as abnormal gradients.
+Error Level Analysis (ELA): Use ELA to detect compression residues in different areas and identify tampered regions.
+Steganography and Data Embedding Detection: Check for hidden information or signs of data embedding.
+EXIF and File Properties: Verify file creation date, modification date, camera model, and location data to see if they match the image content.
+Other Pixel-Level Anomalies: Identify any other unusual pixel details.
+
+5. Forensic Difficulty Grading Standards
+Determine the final forgery features and the difficulty level for forensics based on the analysis results. Grade the image’s forensic suitability and explain the reasons. The grading levels are as follows:
+Easy: Obvious forgery features, such as rough cutting or clear stitching marks. Both the human eye and standard forensic tools can accurately detect them.
+Normal: Complex forgery traces that can be identified through detailed analysis, such as color differences or inconsistent lighting.
+Difficult: Fine forgery details that are hard to detect even with advanced technical analysis. Requires high-level technical methods.
+Undetectable: Not enough information or technical means to determine authenticity. Forgery traces are extremely hidden or need more information to support detection.
+
+6. Summary
+Comprehensive Analysis: Summarize the differences in features between edited and non-edited areas based on the above analysis.
+Method Summary: Highlight the main forgery methods and explain how these signs support your conclusions.
+Grading Reasoning: Provide reasons for the forensic difficulty grade. Explain the ease or difficulty of forensics and factors that may affect the judgment.
+Recommendations: Based on the current analysis, suggest further investigation steps or key areas to focus on.
