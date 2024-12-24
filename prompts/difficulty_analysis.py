@@ -37,3 +37,8 @@ class FakeImageDifficultyAnalysisDescription(DifficultyAnalysisDescription):
 class RealImageDifficultyAnalysisDescription(DifficultyAnalysisDescription):
     def __init__(self, llm):
         super().__init__(llm, "./prompts/difficulty_analysis_real.txt")
+
+
+class NoMaskDifficultyAnalysisDescription(DifficultyAnalysisDescription):
+    def __init__(self, llm):
+        super().__init__(llm, "./prompts/difficulty_analysis.txt")

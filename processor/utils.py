@@ -17,29 +17,22 @@ def compare_different(src_img, target_img, ref_mask=None):
     src_array = np.array(src_img)
     target_array = np.array(target_img)
 
-    # 如果是彩色图像，转换为灰度图像
+    # 如果是彩色图像，计算每个通道的差异
     if len(src_array.shape) == 3:
-        src_gray = cv2.cvtColor(src_array, cv2.COLOR_BGR2GRAY)
-        target_gray = cv2.cvtColor(target_array, cv2.COLOR_BGR2GRAY)
+        diff_r = cv2.absdiff(src_array[:, :, 0], target_array[:, :, 0])
+        diff_g = cv2.absdiff(src_array[:, :, 1], target_array[:, :, 1])
+        diff_b = cv2.absdiff(src_array[:, :, 2], target_array[:, :, 2])
+        diff = cv2.max(diff_r, cv2.max(diff_g, diff_b))
     else:
-        src_gray = src_array
-        target_gray = target_array
+        diff = cv2.absdiff(src_array, target_array)
 
-    diff = cv2.absdiff(src_gray, target_gray)
-
-    # # 分析差异图像的直方图以确定最佳阈值
-    hist = cv2.calcHist([diff], [0], None, [256], [0, 256])
-    total_pixels = diff.shape[0] * diff.shape[1]
-    cumulative_sum = np.cumsum(hist)
-    threshold_index = np.argmax(cumulative_sum > total_pixels * 0.95)
-
-    # 应用动态阈值以创建二值掩码
-    _, mask = cv2.threshold(diff, threshold_index, 255, cv2.THRESH_BINARY)
+    # 使用Otsu's方法自动计算阈值
+    _, mask = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # 使用形态学操作去除噪点
-    kernel_size = max(3, int(min(src_img.size) / 100))  # 根据图像大小动态调整
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    kernel_size = max(3, int(min(src_img.size) / 50))  # 调整核大小
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     # 如果提供了参考mask，将其与计算的mask结合
     if ref_mask is not None:
@@ -314,12 +307,8 @@ def create_blending_image(src_img: Image, target_img: Image, mask):
 
 if __name__ == "__main__":
     # 示例用法
-    mask = Image.new("1", (10, 10))
-    mask_data = mask.load()
-    for i in range(3):
-        for j in range(3):
-            mask_data[2 + i, 2 + j] = 1
-    start_point = (3, 3)
-    end_point = (6, 6)
-    mask = mask_moving(mask, start_point, end_point, is_moving="moving")
-    mask.show()
+    real_img = Image.open("/home/yuyangxin/data/experiment/examples/images/000000000673.jpg").convert("RGB")
+    fake_img = Image.open("/home/yuyangxin/data/experiment/examples/content_dragging/images/000000000673.png").convert("RGB")
+    mask_image = Image.open("/home/yuyangxin/data/experiment/examples/masks/mask_000000000673.jpg").convert("L")
+    mask = compare_different(real_img, fake_img, mask_image)
+    mask.save("./tmp.png")

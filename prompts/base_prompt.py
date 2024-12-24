@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 from langchain.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 
 
 class BasePrompt(ABC):
@@ -24,9 +25,15 @@ class BasePrompt(ABC):
             if self.template:
                 self.chain = self.template | self.llm
 
-    @abstractmethod
     def load_template(self, output_parser: PydanticOutputParser = None):
-        pass
+        placeholders = [
+            ("system", self.system_msg),
+            ("system", "{format_instructions}"),
+            ("placeholder", "{image_data}"),
+        ]
+        partial_vars = {"format_instructions": output_parser.get_format_instructions() if output_parser is not None else None}
+        chat_template = ChatPromptTemplate(placeholders, partial_variables=partial_vars)
+        return chat_template
 
     @abstractmethod
     def run(self, image_info, captions, *args, **kwargs):
