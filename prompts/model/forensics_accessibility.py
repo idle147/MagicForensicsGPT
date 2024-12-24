@@ -18,14 +18,13 @@ class RepForensicsAccessModel(BaseModel):
     mid_feature: str = Field(description="Results of mid-level feature analysis")
     low_feature: str = Field(description="Results of low-level feature analysis")
     level: DifficultyLevel = Field(description="The difficulty level of performing digital forensics on the edited image")
+    real_or_fake: str = Field(description="Whether the image is real or fake, output a real or fake string")
     conclusion: str = Field(description="Conclusion and reasons for determining the difficulty level")
 
 
 class RepSaveForensicsAccessModel(BaseModel):
-    real_or_fake: str = Field(default="", title="Real or Fake", description="Indicates whether the forensics access model is real or fake.")
+    ground_truth: str = Field(default="", title="Real or Fake", description="Indicates whether the forensics access model is real or fake.")
     image_path: str = Field(default="", title="Image Path", description="Path to the image used for forensics.")
     mask_path: str = Field(default="", title="Mask Path", description="Path to the mask used for the image.")
     with_ref: dict = Field(default={}, title="With Reference", description="Forensics access model with reference data.")
-    without_ref: dict = Field(
-        default={}, title="Without Reference", description="Forensics access model without reference data."
-    )
+    without_ref: dict = Field(default={}, title="Without Reference", description="Forensics access model without reference data.")

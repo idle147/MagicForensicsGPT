@@ -20,6 +20,7 @@ from tqdm import tqdm
 from langchain_ollama import OllamaLLM
 from collections import defaultdict
 from prompts.model import RepSaveForensicsAccessModel
+import traceback
 
 
 class ImageDetection:
@@ -96,14 +97,19 @@ class DifficultyAssessment:
                 return json.loads(f.read())
 
         edited_img, _, scale_factor = self.image_processor.load_image(edited_path)
-        mask_img, _, scale_factor = self.image_processor.load_image(mask_path)
+        # 判断mask是否以Neagative结尾
+        if str(mask_path).endswith("Negative") or str(mask_path).endswith("Neagative"):
+            # 给个和edited_img相同尺寸的全黑mask
+            mask_img = np.zeros_like(edited_img)
+        else:
+            mask_img, _, scale_factor = self.image_processor.load_image(mask_path)
         is_real = True if np.array(mask_img).sum() == 0 else False
         with_ref, without_ref = self.get_res(is_real, edited_img, mask_img)
 
         response = RepSaveForensicsAccessModel(
-            real_or_fake="real" if is_real else "fake",
+            ground_truth="real" if is_real else "fake",
             image_path=edited_path.absolute().as_posix(),
-            mask_path=mask_path.absolute().as_posix(),
+            mask_path="Negative" if is_real else mask_path.absolute().as_posix(),
             without_ref=without_ref,
             with_ref=with_ref,
         )
@@ -138,6 +144,7 @@ class DifficultyAssessment:
                 ]
             )
 
+        # 无参考内容生成
         with_ref_response = self.no_ref_analysis.run(image_info)
         if is_real:
             without_response = self.real_diff_analysis.run(image_info)
@@ -234,6 +241,7 @@ class DifficultyAssessment:
                                 future.result()
                             except Exception as e:
                                 print(f"[{dataset_name}] Error processing {path}: {e}")
+                                print(traceback.format_exc())
                             finally:
                                 pbar.update(1)
 
