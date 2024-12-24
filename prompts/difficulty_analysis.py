@@ -28,7 +28,7 @@ class DifficultyAnalysisDescription(BasePrompt):
         try:
             rep_model: RepForensicsAccessModel = self.chain.invoke(input_info)
         except Exception as e:
-            return str(e)
+            return {"error": str(e)}
         return rep_model.model_dump()
 
 

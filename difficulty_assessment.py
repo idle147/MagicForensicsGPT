@@ -72,6 +72,9 @@ class DifficultyAssessment:
 
         self.model_name = model_name
         self.is_debug = is_debug
+        if self.is_debug is True:
+            print("开启Debug模式")
+
         self.fake_diff_analysis = FakeImageDifficultyAnalysisDescription(self.llm)
         self.real_diff_analysis = RealImageDifficultyAnalysisDescription(self.llm)
         self.no_ref_analysis = NoRefDifficultyAnalysisDescription(self.llm)
@@ -89,7 +92,6 @@ class DifficultyAssessment:
 
         save_path = save_dir_path / (edited_path.stem + ".json")
         if save_path.exists():
-            print(f"图像{edited_path}, 已存在评估的内容")
             with open(save_path, "r") as f:
                 return json.loads(f.read())
 
@@ -101,7 +103,7 @@ class DifficultyAssessment:
         response = RepSaveForensicsAccessModel(
             real_or_fake="real" if is_real else "fake",
             image_path=edited_path.absolute().as_posix(),
-            mask_path=edited_path.absolute().as_posix(),
+            mask_path=mask_path.absolute().as_posix(),
             without_ref=without_ref,
             with_ref=with_ref,
         )
@@ -140,7 +142,7 @@ class DifficultyAssessment:
         if is_real:
             without_response = self.real_diff_analysis.run(image_info)
         else:
-            assert mask_img is not None, ""
+            assert mask_img is not None, "伪造图像需要相应的Mask文件"
             masked_img_base64 = self.image_processor.get_webp_base64(mask_img)
             if isinstance(self.llm, OllamaLLM):
                 image_info = [
@@ -188,16 +190,27 @@ class DifficultyAssessment:
             ret = json.load(f, strict=False)
         print(f"发现数据集[{len(ret)}种]: {ret.keys()}")
 
-        futures = defaultdict(list)
+        futures = defaultdict(dict)
+
+        # 读取已经存在的文件夹下的文件
+        for dataset_name, dataset_path in ret.items():
+            save_path = self.output_dir / dataset_name
+            for file in glob(save_path.as_posix() + "/*.json"):
+                # 读取json
+                with open(file, "r") as f:
+                    data = json.load(f)
+                futures[dataset_name][Path(data["image_path"])] = Path(data["mask_path"])
+
+        # 加载剩余的
         for dataset_name, dataset_path in ret.items():
             with open(dataset_path, "r") as f:
                 dataset_path = json.load(f)
             assert isinstance(dataset_path, list), "数据集应该是列表的形式"
             random.shuffle(dataset_path)
             for item in dataset_path:
-                futures[dataset_name].append([Path(item[0]), Path(item[1])])
-                break
-
+                if len(futures[dataset_name]) >= 100:
+                    break
+                futures[dataset_name][Path(item[0])] = Path(item[1])
         for dataset_name, paths in futures.items():
             print(f"[{dataset_name}]总计: ", len(paths))
 
@@ -205,14 +218,14 @@ class DifficultyAssessment:
         if self.is_debug:
             # 采用单线程
             for dataset_name, paths in futures.items():
-                for real_img, fake_img in paths:
-                    self.evaluate(dataset_name, real_img, fake_img)
+                for image, mask_img in paths.items():
+                    self.evaluate(dataset_name, image, mask_img)
         else:
             with ThreadPoolExecutor(max_workers=8) as executor:
                 for dataset_name, paths in futures.items():
-                    future_to_path = {
-                        executor.submit(self.evaluate, dataset_name, real_img, fake_img): real_img for real_img, fake_img in paths
-                    }
+                    future_to_path = {}
+                    for image, mask_img in paths.items():
+                        future_to_path[executor.submit(self.evaluate, dataset_name, image, mask_img)] = image
                     # 为每个数据集创建进度条
                     with tqdm(total=len(future_to_path), desc=f"Processing {dataset_name}") as pbar:
                         for future in as_completed(future_to_path):
@@ -226,5 +239,5 @@ class DifficultyAssessment:
 
 
 if __name__ == "__main__":
-    a = DifficultyAssessment("/home/yuyangxin/data/experiment/document_example", "chatgpt", is_debug=True)
+    a = DifficultyAssessment("/home/yuyangxin/data/experiment/document_example", "chatgpt")
     a.run("/home/yuyangxin/data/imdl-demo/datasets/documents/test_datasets.json")

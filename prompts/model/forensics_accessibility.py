@@ -25,7 +25,7 @@ class RepSaveForensicsAccessModel(BaseModel):
     real_or_fake: str = Field(default="", title="Real or Fake", description="Indicates whether the forensics access model is real or fake.")
     image_path: str = Field(default="", title="Image Path", description="Path to the image used for forensics.")
     mask_path: str = Field(default="", title="Mask Path", description="Path to the mask used for the image.")
-    with_ref: RepForensicsAccessModel = Field(default={}, title="With Reference", description="Forensics access model with reference data.")
-    without_ref: RepForensicsAccessModel = Field(
+    with_ref: dict = Field(default={}, title="With Reference", description="Forensics access model with reference data.")
+    without_ref: dict = Field(
         default={}, title="Without Reference", description="Forensics access model without reference data."
     )
