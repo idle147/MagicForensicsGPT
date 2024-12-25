@@ -191,7 +191,7 @@ class DifficultyAssessment:
         # 进行真实性的评估
         return without_response, with_ref_response
 
-    def run(self, dataset_json):
+    def run(self, dataset_json, max_number=500):
         # 读取json文件
         with open(dataset_json, "r") as f:
             ret = json.load(f, strict=False)
@@ -215,7 +215,7 @@ class DifficultyAssessment:
             assert isinstance(dataset_path, list), "数据集应该是列表的形式"
             random.shuffle(dataset_path)
             for item in dataset_path:
-                if len(futures[dataset_name]) >= 100:
+                if len(futures[dataset_name]) >= max_number:
                     break
                 futures[dataset_name][Path(item[0])] = Path(item[1])
         for dataset_name, paths in futures.items():
