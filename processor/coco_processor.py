@@ -9,9 +9,10 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
-from facenet_pytorch import MTCNN
 from pycocotools.coco import COCO
 from pycocotools import mask as maskUtils
+
+from facenet_pytorch import MTCNN
 
 
 class FaceDetector:

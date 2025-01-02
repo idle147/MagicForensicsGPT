@@ -1,7 +1,6 @@
 from typing import Dict, List, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
-from ..model.object_info import ObjectInfo
 from typing import Optional
 
 

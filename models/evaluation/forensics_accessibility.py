@@ -1,3 +1,7 @@
+"""
+    可取证性
+"""
+
 from pydantic import BaseModel, Field
 from enum import Enum
 
