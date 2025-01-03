@@ -9,3 +9,4 @@ result.json
 document_example/*
 .env*
 config/.env
+old_content/*

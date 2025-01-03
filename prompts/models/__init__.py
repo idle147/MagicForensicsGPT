@@ -1,12 +1,16 @@
 from .description.description import *
 from .diff import DiffParts
-from .object_moving import RepMovingModel
-from .object_resizing import RepResizingModel
-from .object_removing import RepReMovingModel
-from .generation.content_dragging import ContentDragModel
 from .evaluation.score import RepScoreModel
 from .evaluation.forensics_accessibility import RepForensicsAccessModel, RepSaveForensicsAccessModel
 from .forensic.detection_res import DetectionRes, SaveDetectionRes
+
+from modification.object_moving import RepMovingModel
+from modification.object_resizing import RepResizingModel
+from modification.object_removing import RepReMovingModel
+from modification.object_recoloring import RepRecoloringModel
+from modification.object_generation import RepGenerationModel
+from modification.content_dragging import ContentDragModel
+
 
 # # 读取当前文件夹下的所有py文件, 自动import所有基类为from pydantic import BaseModel的类
 

@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from .base_prompt import BasePrompt
-from .model import DescriptionModel
+from .models import DescriptionModel
 
 
 class FullDescription(BasePrompt):
