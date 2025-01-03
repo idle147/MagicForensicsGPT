@@ -1,8 +1,8 @@
 from pathlib import Path
 from tqdm import tqdm
 
-from evaluate.gscore_evaluation import GScoreEvaluation
-from evaluate.similarity_evaluation import SimilarityEvaluator
+from evaluator.gscore_evaluation import GScoreEvaluation
+from evaluator.similarity_evaluation import SimilarityEvaluator
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
